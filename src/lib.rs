@@ -6,6 +6,16 @@ mod metadata;
 mod string_rec;
 mod thread_rec;
 mod wordutils;
+
+// Re-export types needed for the public API
+pub use event::{Event, EventRecord, Instant, DurationBegin, DurationEnd, DurationComplete, Counter, EventTypeParseError};
+pub use header::{RecordType, RecordHeader, CustomField, RecordTypeParseError};
+pub use initialization::InitializationRecord;
+pub use metadata::{MetadataRecord, ProviderInfo, ProviderSection, ProviderEvent, TraceInfo, MetadataType, MetadataTypeParseError};
+pub use string_rec::StringRecord;
+pub use thread_rec::ThreadRecord;
+pub use wordutils::read_u64_word;
+
 #[cfg(test)]
 mod tests {
     pub mod archive_test;
@@ -16,14 +26,6 @@ mod tests {
     pub mod string_rec_test;
     pub mod thread_rec_test;
 }
-
-use crate::metadata::{MetadataRecord, MetadataTypeParseError};
-use event::{EventRecord, EventTypeParseError};
-use header::{RecordHeader, RecordType, RecordTypeParseError};
-use initialization::InitializationRecord;
-use string_rec::StringRecord;
-use thread_rec::ThreadRecord;
-use wordutils::read_u64_word;
 
 use std::io::{ErrorKind, Read, Write};
 use std::string::FromUtf8Error;
