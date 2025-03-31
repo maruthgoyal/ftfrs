@@ -28,8 +28,6 @@ pub struct ProviderEvent {
     pub event_id: u8,
 }
 
-#[derive(Debug)]
-pub struct MagicNumber;
 
 pub enum MetadataType {
     ProviderInfo = 1,

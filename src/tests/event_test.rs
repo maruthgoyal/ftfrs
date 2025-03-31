@@ -1,10 +1,11 @@
-use crate::event::{EventRecord, EventType, Instant, Counter, DurationBegin, DurationEnd, DurationComplete};
+use crate::event::EventRecord;
 use crate::header::RecordHeader;
 use crate::{StringOrRef, ThreadOrRef};
 use std::io::Cursor;
 use anyhow::Result;
 
 #[cfg(test)]
+#[allow(clippy::identity_op)]
 mod tests {
     use super::*;
 

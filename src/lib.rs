@@ -37,7 +37,7 @@ pub enum ThreadOrRef {
     Ref(u8),
 }
 
-enum Record {
+pub enum Record {
     Metadata(MetadataRecord),
     Initialization(InitializationRecord),
     String(StringRecord),
@@ -51,8 +51,8 @@ enum Record {
     LargeBlob,
 }
 
-struct Archive {
-    records: Vec<Record>,
+pub struct Archive {
+    pub records: Vec<Record>,
 }
 
 #[derive(Debug)]
@@ -70,7 +70,7 @@ pub enum Argument {
 }
 
 impl Record {
-    fn from_bytes<U: Read>(mut reader: U) -> anyhow::Result<Record> {
+    pub fn from_bytes<U: Read>(mut reader: U) -> anyhow::Result<Record> {
         let header = RecordHeader { value: read_u64_word(&mut reader)? };
 
         let record_type = header.record_type()?;

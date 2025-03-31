@@ -3,6 +3,7 @@ use crate::header::RecordHeader;
 use std::io::Cursor;
 
 #[cfg(test)]
+#[allow(clippy::identity_op)]
 mod tests {
     use super::*;
 
