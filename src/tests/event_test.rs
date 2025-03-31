@@ -881,7 +881,7 @@ mod tests {
         assert_eq!(category_string, "debug");
 
         // Then name string "operation"
-        let name_bytes = &buffer[40..48];
+        let name_bytes = &buffer[40..56];
         let mut name_string = String::new();
         for &byte in name_bytes {
             if byte != 0 {
