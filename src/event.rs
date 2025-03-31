@@ -3,10 +3,7 @@ use std::io::Read;
 use thiserror::Error;
 
 use crate::{
-    extract_bits,
-    header::RecordType,
-    wordutils::{read_aligned_str, read_u64_word},
-    Argument, RecordHeader, StringOrRef, ThreadOrRef,
+    extract_bits, header::RecordType, wordutils::{read_aligned_str, read_u64_word}, Argument, RecordHeader, StringOrRef, ThreadOrRef
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -103,7 +100,9 @@ impl DurationComplete {
     }
 }
 
-impl Event {}
+impl Event {
+
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum EventRecord {
@@ -131,12 +130,12 @@ impl EventRecord {
             EventType::DurationComplete => Ok(Self::DurationComplete(DurationComplete::parse(
                 reader, event,
             )?)),
-            EventType::AsyncBegin => unimplemented!(),
-            EventType::AsyncEnd => unimplemented!(),
-            EventType::AsyncInstant => unimplemented!(),
-            EventType::FlowBegin => unimplemented!(),
-            EventType::FlowStep => unimplemented!(),
-            EventType::FlowEnd => unimplemented!(),
+            EventType::AsyncBegin => todo!(),
+            EventType::AsyncEnd => todo!(),
+            EventType::AsyncInstant => todo!(),
+            EventType::FlowBegin => todo!(),
+            EventType::FlowStep => todo!(),
+            EventType::FlowEnd => todo!(),
         }
     }
 
@@ -173,7 +172,9 @@ impl EventRecord {
             StringOrRef::String(n)
         };
 
-        log::warn!("Argument parsing not implemented!");
+        if n_args > 0 {
+            todo!("Argument parsing not implemented yet");
+        }
 
         Ok((
             event_type,
@@ -186,6 +187,5 @@ impl EventRecord {
             },
         ))
 
-        // unimplemented!()
     }
 }
