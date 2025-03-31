@@ -64,10 +64,29 @@ pub enum StringOrRef {
     String(String),
     Ref(u16),
 }
+
+impl StringOrRef {
+    pub fn to_field(&self) -> u16 {
+        match self {
+            StringOrRef::Ref(r) => *r & 0x7FFF,
+            StringOrRef::String(s)  => (s.len() as u16) | 0x8000
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ThreadOrRef {
     ProcessAndThread(u64, u64),
     Ref(u8),
+}
+
+impl ThreadOrRef {
+    pub fn to_field(&self) -> u8 {
+        match self {
+            Self::ProcessAndThread(_, _) => 0,
+            Self::Ref(r) => *r
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

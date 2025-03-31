@@ -1,6 +1,6 @@
 use crate::header::RecordHeader;
 use crate::thread_rec::ThreadRecord;
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 
 #[cfg(test)]
 #[allow(clippy::identity_op)]
