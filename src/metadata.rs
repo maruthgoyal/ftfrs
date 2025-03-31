@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::io::Read;
 use thiserror::Error;
 
-use crate::{extract_bits, RecordHeader};
+use crate::{extract_bits, strutils, RecordHeader};
 
 #[derive(Debug)]
 pub struct TraceInfo {
@@ -87,17 +87,8 @@ impl MetadataRecord {
             MetadataType::ProviderInfo => {
                 let provider_id = Self::provider_id(&header);
                 let namelen = extract_bits!(header.value, 52, 59) as usize;
-                let sz= header.size() as usize;
-                let mut name = vec![0 as u8; (sz - 1) * 8];
-                reader.read_exact(&mut name)?;
 
-               let provider_name = if namelen % 8 == 0 {
-                    String::from_utf8(name)?
-                } else {
-                    // get rid of 0-padding
-                    let name = name[0..namelen].to_vec();
-                    String::from_utf8(name)?
-                };
+                let provider_name = strutils::read_aligned_str(reader, namelen, &header)?;
 
                 Ok(Self::ProviderInfo(ProviderInfo { provider_id, provider_name })) 
 
