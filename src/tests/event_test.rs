@@ -3,7 +3,7 @@ use crate::event::{
 };
 use crate::header::RecordHeader;
 use crate::{Result, StringOrRef, ThreadOrRef};
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 
 #[cfg(test)]
 #[allow(clippy::identity_op)]

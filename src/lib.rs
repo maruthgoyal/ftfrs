@@ -8,6 +8,7 @@ mod thread_rec;
 mod wordutils;
 #[cfg(test)]
 mod tests {
+    pub mod archive_test;
     pub mod bitutils_test;
     pub mod event_test;
     pub mod initialization_test;
@@ -24,7 +25,7 @@ use string_rec::StringRecord;
 use thread_rec::ThreadRecord;
 use wordutils::read_u64_word;
 
-use std::io::{Read, Write};
+use std::io::{ErrorKind, Read, Write};
 use std::string::FromUtf8Error;
 use thiserror::Error;
 
@@ -108,6 +109,31 @@ pub struct Archive {
     pub records: Vec<Record>,
 }
 
+impl Archive {
+    pub fn read<R: Read>(mut reader: R) -> Result<Self> {
+        let mut res = Vec::new();
+        loop {
+            match Record::from_bytes(&mut reader) {
+                Ok(r) => res.push(r),
+                Err(FtfError::Io(e)) => match e.kind() {
+                    ErrorKind::UnexpectedEof => break,
+                    _ => return Err(FtfError::Io(e)),
+                },
+                Err(e) => return Err(e),
+            }
+        }
+
+        Ok(Archive { records: res })
+    }
+
+    pub fn write<W: Write>(&self, mut writer: W) -> Result<()> {
+        for record in &self.records {
+            record.write(&mut writer)?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Argument {
     Null,
@@ -123,32 +149,31 @@ pub enum Argument {
 }
 
 impl Record {
-    pub fn from_bytes<U: Read>(mut reader: U) -> Result<Record> {
+    pub fn from_bytes<U: Read>(reader: &mut U) -> Result<Record> {
         let header = RecordHeader {
-            value: read_u64_word(&mut reader)?,
+            value: read_u64_word(reader)?,
         };
 
         let record_type = header.record_type()?;
         match record_type {
-            RecordType::Metadata => Ok(Self::Metadata(MetadataRecord::parse(&mut reader, header)?)),
+            RecordType::Metadata => Ok(Self::Metadata(MetadataRecord::parse(reader, header)?)),
             RecordType::Initialization => Ok(Self::Initialization(InitializationRecord::parse(
-                &mut reader,
-                header,
+                reader, header,
             )?)),
-            RecordType::String => Ok(Self::String(StringRecord::parse(&mut reader, header)?)),
-            RecordType::Thread => Ok(Self::Thread(ThreadRecord::parse(&mut reader, header)?)),
-            RecordType::Event => Ok(Self::Event(EventRecord::parse(&mut reader, header)?)),
+            RecordType::String => Ok(Self::String(StringRecord::parse(reader, header)?)),
+            RecordType::Thread => Ok(Self::Thread(ThreadRecord::parse(reader, header)?)),
+            RecordType::Event => Ok(Self::Event(EventRecord::parse(reader, header)?)),
             _ => Err(FtfError::UnsupportedRecordType(record_type)),
         }
     }
 
-    pub fn write<W: Write>(&self, mut writer: W) -> Result<()> {
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         match self {
-            Self::Metadata(r) => Ok(r.write(&mut writer)?),
-            Self::Initialization(r) => Ok(r.write(&mut writer)?),
-            Self::String(r) => Ok(r.write(&mut writer)?),
-            Self::Thread(r) => Ok(r.write(&mut writer)?),
-            Self::Event(r) => Ok(r.write(&mut writer)?),
+            Self::Metadata(r) => Ok(r.write(writer)?),
+            Self::Initialization(r) => Ok(r.write(writer)?),
+            Self::String(r) => Ok(r.write(writer)?),
+            Self::Thread(r) => Ok(r.write(writer)?),
+            Self::Event(r) => Ok(r.write(writer)?),
             _ => Err(FtfError::Unimplemented("Write".to_string())),
         }
     }
