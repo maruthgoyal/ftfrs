@@ -28,7 +28,6 @@ pub struct ProviderEvent {
     pub event_id: u8,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum MetadataType {
@@ -90,8 +89,10 @@ impl MetadataRecord {
 
                 let provider_name = wordutils::read_aligned_str(reader, namelen)?;
 
-                Ok(Self::ProviderInfo(ProviderInfo { provider_id, provider_name })) 
-
+                Ok(Self::ProviderInfo(ProviderInfo {
+                    provider_id,
+                    provider_name,
+                }))
             }
             MetadataType::ProviderSection => {
                 let provider_id = Self::provider_id(&header);
@@ -108,7 +109,10 @@ impl MetadataRecord {
             MetadataType::TraceInfo => {
                 let trace_info_type = extract_bits!(header.value, 20, 23) as u8;
                 let data = extract_bits!(header.value, 24, 63);
-                Ok(Self::TraceInfo(TraceInfo { trace_info_type, data }))
+                Ok(Self::TraceInfo(TraceInfo {
+                    trace_info_type,
+                    data,
+                }))
             }
         }
     }

@@ -1,4 +1,3 @@
-
 use crate::extract_bits;
 use thiserror::Error;
 
@@ -38,7 +37,6 @@ impl TryFrom<u8> for RecordType {
             15 => Ok(Self::LargeBlob),
             _ => Err(RecordTypeParseError(value)),
         }
-        
     }
 
     type Error = RecordTypeParseError;

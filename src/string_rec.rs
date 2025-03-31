@@ -10,7 +10,6 @@ pub struct StringRecord {
     pub value: String,
 }
 
-
 impl StringRecord {
     pub fn parse<U: Read>(reader: &mut U, header: RecordHeader) -> Result<Self> {
         let index = extract_bits!(header.value, 16, 30) as u16;
