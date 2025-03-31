@@ -17,7 +17,7 @@ mod tests {
 }
 
 use crate::metadata::MetadataRecord;
-use event::{Event, EventRecord};
+use event::EventRecord;
 use header::{RecordHeader, RecordType};
 use initialization::InitializationRecord;
 use stringrec::StringRecord;

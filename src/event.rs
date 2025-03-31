@@ -4,7 +4,7 @@ use thiserror::Error;
 
 use crate::{
     extract_bits,
-    wordutils::{self, read_aligned_str, read_u64_word},
+    wordutils::{read_aligned_str, read_u64_word},
     Argument, RecordHeader, StringOrRef, ThreadOrRef,
 };
 

@@ -2,7 +2,6 @@ use crate::wordutils;
 use crate::{extract_bits, RecordHeader};
 use anyhow::Result;
 use std::io::Read;
-use thiserror::Error;
 
 #[derive(Debug)]
 pub struct StringRecord {

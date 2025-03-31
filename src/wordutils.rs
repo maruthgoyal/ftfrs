@@ -1,4 +1,3 @@
-use crate::RecordHeader;
 use anyhow::Result;
 use std::io::Read;
 
@@ -9,7 +8,7 @@ pub fn read_u64_word<U: Read>(reader: &mut U) -> Result<u64> {
 }
 pub fn read_aligned_str<U: Read>(reader: &mut U, len: usize) -> Result<String> {
     let bytes_to_read = ((len + 7)/8) * 8;
-    let mut buf = vec![0; bytes_to_read as usize];
+    let mut buf = vec![0; bytes_to_read];
     reader.read_exact(&mut buf)?;
 
     if len % 8 == 0 {
