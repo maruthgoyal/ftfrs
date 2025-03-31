@@ -3,7 +3,7 @@ use std::io::Read;
 use thiserror::Error;
 
 use crate::{
-    extract_bits, header::RecordType, wordutils::{read_aligned_str, read_u64_word}, Argument, RecordHeader, StringOrRef, ThreadOrRef
+    extract_bits, wordutils::{read_aligned_str, read_u64_word}, Argument, RecordHeader, StringOrRef, ThreadOrRef
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
