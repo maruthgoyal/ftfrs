@@ -1,4 +1,4 @@
-use crate::threadrec::ThreadRecord;
+use crate::thread_rec::ThreadRecord;
 use crate::header::RecordHeader;
 use std::io::Cursor;
 

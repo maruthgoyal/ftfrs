@@ -3,7 +3,7 @@ use crate::{extract_bits, RecordHeader};
 use anyhow::Result;
 use std::io::Read;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StringRecord {
     pub index: u16,
     pub length: u32,

@@ -1,4 +1,4 @@
-use crate::stringrec::StringRecord;
+use crate::string_rec::StringRecord;
 use crate::header::RecordHeader;
 use std::io::Cursor;
 

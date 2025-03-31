@@ -4,31 +4,33 @@ use thiserror::Error;
 
 use crate::{extract_bits, wordutils, RecordHeader};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TraceInfo {
     pub trace_info_type: u8,
     // only 40 bits, but no point in encoding as [u8; 5]
     pub data: u64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProviderInfo {
     pub provider_id: u32,
     pub provider_name: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ProviderSection {
     pub provider_id: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ProviderEvent {
     pub provider_id: u32,
     pub event_id: u8,
 }
 
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum MetadataType {
     ProviderInfo = 1,
     ProviderSection = 2,
@@ -54,7 +56,7 @@ impl TryFrom<u8> for MetadataType {
     type Error = MetadataTypeParseError;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MetadataRecord {
     ProviderInfo(ProviderInfo),
     ProviderSection(ProviderSection),

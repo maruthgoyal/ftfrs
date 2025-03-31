@@ -2,7 +2,8 @@
 use crate::extract_bits;
 use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum RecordType {
     Metadata = 0,
     Initialization = 1,

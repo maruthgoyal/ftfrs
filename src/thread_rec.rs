@@ -2,7 +2,7 @@ use crate::{extract_bits, wordutils::read_u64_word, RecordHeader};
 use anyhow::Result;
 use std::io::Read;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ThreadRecord {
     pub index: u8,
     pub process_koid: u64,

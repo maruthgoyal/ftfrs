@@ -3,11 +3,11 @@ use std::io::Read;
 use thiserror::Error;
 
 use crate::{
-    extract_bits,
-    wordutils::{read_aligned_str, read_u64_word},
-    Argument, RecordHeader, StringOrRef, ThreadOrRef,
+    extract_bits, header::RecordType, wordutils::{read_aligned_str, read_u64_word}, Argument, RecordHeader, StringOrRef, ThreadOrRef
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum EventType {
     Instant = 0,
     Counter = 1,
@@ -47,7 +47,7 @@ impl TryFrom<u8> for EventType {
     type Error = EventTypeParseError;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Event {
     pub timestamp: u64,
     pub thread: ThreadOrRef,
@@ -56,28 +56,28 @@ pub struct Event {
     pub arguments: Vec<Argument>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Instant {
     pub event: Event,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Counter {
     pub event: Event,
     pub counter_id: u64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DurationBegin {
     pub event: Event,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DurationEnd {
     pub event: Event,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DurationComplete {
     pub event: Event,
     pub duration_ticks: u64,
@@ -100,7 +100,11 @@ impl DurationComplete {
     }
 }
 
-#[derive(Debug)]
+impl Event {
+
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum EventRecord {
     Instant(Instant),
     Counter(Counter),
