@@ -255,7 +255,7 @@ mod tests {
                 assert_eq!(complete.event.thread, ThreadOrRef::Ref(8));
                 assert_eq!(complete.event.category, StringOrRef::Ref(15));
                 assert_eq!(complete.event.name, StringOrRef::Ref(22));
-                assert_eq!(complete.duration_ticks, 500000);
+                assert_eq!(complete.end_ts, 500000);
                 assert!(complete.event.arguments.is_empty());
             }
             _ => panic!("Expected DurationComplete event record"),
@@ -659,7 +659,7 @@ mod tests {
 
         let duration_complete_record = EventRecord::DurationComplete(DurationComplete {
             event,
-            duration_ticks: 500000,
+            end_ts: 500000,
         });
 
         // Write it to a buffer
@@ -984,7 +984,7 @@ mod tests {
 
         let original_record = EventRecord::DurationComplete(DurationComplete {
             event: original_event,
-            duration_ticks: 500000,
+            end_ts: 500000,
         });
 
         // Write it to a buffer
@@ -1002,7 +1002,7 @@ mod tests {
                 assert_eq!(complete.event.thread, ThreadOrRef::Ref(8));
                 assert_eq!(complete.event.category, StringOrRef::Ref(15));
                 assert_eq!(complete.event.name, StringOrRef::Ref(22));
-                assert_eq!(complete.duration_ticks, 500000);
+                assert_eq!(complete.end_ts, 500000);
                 assert!(complete.event.arguments.is_empty());
             }
             _ => panic!("Expected DurationComplete event record, got {:?}", record),

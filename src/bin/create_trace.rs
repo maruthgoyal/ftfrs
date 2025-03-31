@@ -131,7 +131,7 @@ fn create_sample_archive() -> Result<Archive> {
     };
     records.push(Record::Event(EventRecord::DurationComplete(DurationComplete {
         event: complete_event,
-        duration_ticks: base_time + 900, // Duration in ticks
+        end_ts: base_time + 900, // Duration in ticks
     })));
     
     Ok(Archive { records })

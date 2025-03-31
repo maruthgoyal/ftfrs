@@ -84,7 +84,7 @@ pub struct DurationEnd {
 #[derive(Debug, Clone, PartialEq)]
 pub struct DurationComplete {
     pub event: Event,
-    pub duration_ticks: u64,
+    pub end_ts: u64,
 }
 
 impl Instant {
@@ -125,7 +125,7 @@ impl DurationComplete {
         let duration_ticks = read_u64_word(reader)?;
         Ok(Self {
             event,
-            duration_ticks,
+            end_ts: duration_ticks,
         })
     }
 
@@ -133,7 +133,7 @@ impl DurationComplete {
         self.event.write_event(
             writer,
             EventType::DurationComplete,
-            vec![self.duration_ticks],
+            vec![self.end_ts],
         )
     }
 }
