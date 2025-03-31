@@ -13,6 +13,7 @@ mod tests {
     pub mod initialization_test;
     pub mod stringrec_test;
     pub mod threadrec_test;
+    pub mod event_test;
 }
 
 use crate::metadata::MetadataRecord;
@@ -25,11 +26,13 @@ use wordutils::read_u64_word;
 
 use std::io::Read;
 
-enum StringOrRef {
+#[derive(Debug, PartialEq)]
+pub enum StringOrRef {
     String(String),
     Ref(u16),
 }
-enum ThreadOrRef {
+#[derive(Debug, PartialEq)]
+pub enum ThreadOrRef {
     ProcessAndThread(u64, u64),
     Ref(u8),
 }
@@ -52,7 +55,8 @@ struct Archive {
     records: Vec<Record>,
 }
 
-enum Argument {
+#[derive(Debug)]
+pub enum Argument {
     Null,
     Int32(i32),
     UInt32(u32),

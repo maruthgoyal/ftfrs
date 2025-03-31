@@ -47,34 +47,40 @@ impl TryFrom<u8> for EventType {
     type Error = EventTypeParseError;
 }
 
+#[derive(Debug)]
 pub struct Event {
-    timestamp: u64,
-    thread: ThreadOrRef,
-    category: StringOrRef,
-    name: StringOrRef,
-    arguments: Vec<Argument>,
+    pub timestamp: u64,
+    pub thread: ThreadOrRef,
+    pub category: StringOrRef,
+    pub name: StringOrRef,
+    pub arguments: Vec<Argument>,
 }
 
+#[derive(Debug)]
 pub struct Instant {
-    event: Event,
+    pub event: Event,
 }
 
+#[derive(Debug)]
 pub struct Counter {
-    event: Event,
-    counter_id: u64,
+    pub event: Event,
+    pub counter_id: u64,
 }
 
+#[derive(Debug)]
 pub struct DurationBegin {
-    event: Event,
+    pub event: Event,
 }
 
+#[derive(Debug)]
 pub struct DurationEnd {
-    event: Event,
+    pub event: Event,
 }
 
+#[derive(Debug)]
 pub struct DurationComplete {
-    event: Event,
-    duration_ticks: u64,
+    pub event: Event,
+    pub duration_ticks: u64,
 }
 
 impl Counter {
@@ -94,6 +100,7 @@ impl DurationComplete {
     }
 }
 
+#[derive(Debug)]
 pub enum EventRecord {
     Instant(Instant),
     Counter(Counter),
