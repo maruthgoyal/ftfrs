@@ -6,7 +6,7 @@ use std::io::Cursor;
 #[allow(clippy::identity_op)]
 mod tests {
     use super::*;
-    use anyhow::Result;
+    use crate::Result;
 
     #[test]
     fn test_string_record_parsing() -> Result<()> {

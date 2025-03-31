@@ -1,6 +1,6 @@
-use anyhow::Result;
 use std::io::Read;
 use thiserror::Error;
+use crate::{FtfError, Result};
 
 use crate::{
     extract_bits, wordutils::{read_aligned_str, read_u64_word}, Argument, RecordHeader, StringOrRef, ThreadOrRef
@@ -130,12 +130,12 @@ impl EventRecord {
             EventType::DurationComplete => Ok(Self::DurationComplete(DurationComplete::parse(
                 reader, event,
             )?)),
-            EventType::AsyncBegin => todo!(),
-            EventType::AsyncEnd => todo!(),
-            EventType::AsyncInstant => todo!(),
-            EventType::FlowBegin => todo!(),
-            EventType::FlowStep => todo!(),
-            EventType::FlowEnd => todo!(),
+            EventType::AsyncBegin => Err(FtfError::Unimplemented("AsyncBegin event type not implemented".to_string())),
+            EventType::AsyncEnd => Err(FtfError::Unimplemented("AsyncEnd event type not implemented".to_string())),
+            EventType::AsyncInstant => Err(FtfError::Unimplemented("AsyncInstant event type not implemented".to_string())),
+            EventType::FlowBegin => Err(FtfError::Unimplemented("FlowBegin event type not implemented".to_string())),
+            EventType::FlowStep => Err(FtfError::Unimplemented("FlowStep event type not implemented".to_string())),
+            EventType::FlowEnd => Err(FtfError::Unimplemented("FlowEnd event type not implemented".to_string())),
         }
     }
 
@@ -173,7 +173,7 @@ impl EventRecord {
         };
 
         if n_args > 0 {
-            todo!("Argument parsing not implemented yet");
+            return Err(FtfError::Unimplemented("Argument parsing not implemented yet".to_string()));
         }
 
         Ok((

@@ -1,8 +1,7 @@
-use anyhow::Result;
 use std::io::Read;
 use thiserror::Error;
 
-use crate::{extract_bits, wordutils, RecordHeader};
+use crate::{extract_bits, wordutils, Result, RecordHeader};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TraceInfo {

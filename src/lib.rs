@@ -16,15 +16,48 @@ mod tests {
     pub mod thread_rec_test;
 }
 
-use crate::metadata::MetadataRecord;
-use event::EventRecord;
-use header::{RecordHeader, RecordType};
+use crate::metadata::{MetadataRecord, MetadataTypeParseError};
+use event::{EventRecord, EventTypeParseError};
+use header::{RecordHeader, RecordType, RecordTypeParseError};
 use initialization::InitializationRecord;
 use string_rec::StringRecord;
 use thread_rec::ThreadRecord;
 use wordutils::read_u64_word;
 
 use std::io::Read;
+use std::string::FromUtf8Error;
+use thiserror::Error;
+
+/// Custom error type for the FTF parsing library
+#[derive(Error, Debug)]
+pub enum FtfError {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("UTF-8 conversion error: {0}")]
+    Utf8(#[from] FromUtf8Error),
+
+    #[error("Invalid record type: {0}")]
+    InvalidRecordType(#[from] RecordTypeParseError),
+
+    #[error("Invalid event type: {0}")]
+    InvalidEventType(#[from] EventTypeParseError),
+
+    #[error("Invalid metadata type: {0}")]
+    InvalidMetadataType(#[from] MetadataTypeParseError),
+
+    #[error("Unsupported record type: {0:?}")]
+    UnsupportedRecordType(RecordType),
+    
+    #[error("Unimplemented feature: {0}")]
+    Unimplemented(String),
+    
+    #[error("Parse error: {0}")]
+    ParseError(String),
+}
+
+/// Type alias for Result with FtfError
+pub type Result<T> = std::result::Result<T, FtfError>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StringOrRef {
@@ -38,7 +71,7 @@ pub enum ThreadOrRef {
 }
 
 trait WriteRec<W: std::io::Write> {
-    fn write(writer: W) -> anyhow::Result<()>;
+    fn write(writer: W) -> Result<()>;
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -75,7 +108,7 @@ pub enum Argument {
 }
 
 impl Record {
-    pub fn from_bytes<U: Read>(mut reader: U) -> anyhow::Result<Record> {
+    pub fn from_bytes<U: Read>(mut reader: U) -> Result<Record> {
         let header = RecordHeader {
             value: read_u64_word(&mut reader)?,
         };
@@ -90,7 +123,7 @@ impl Record {
             RecordType::String => Ok(Self::String(StringRecord::parse(&mut reader, header)?)),
             RecordType::Thread => Ok(Self::Thread(ThreadRecord::parse(&mut reader, header)?)),
             RecordType::Event => Ok(Self::Event(EventRecord::parse(&mut reader, header)?)),
-            _ => Err(anyhow::anyhow!("Unsupported record type {:?}", record_type)),
+            _ => Err(FtfError::UnsupportedRecordType(record_type)),
         }
     }
 }

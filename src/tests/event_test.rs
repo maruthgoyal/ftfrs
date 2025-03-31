@@ -1,7 +1,6 @@
 use crate::event::EventRecord;
 use crate::header::RecordHeader;
-use crate::{StringOrRef, ThreadOrRef};
-use anyhow::Result;
+use crate::{Result, StringOrRef, ThreadOrRef};
 use std::io::Cursor;
 
 #[cfg(test)]

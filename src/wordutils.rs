@@ -1,5 +1,5 @@
-use anyhow::Result;
 use std::io::Read;
+use crate::Result;
 
 pub fn read_u64_word<U: Read>(reader: &mut U) -> Result<u64> {
     let mut buf = [0; 8];

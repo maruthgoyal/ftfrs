@@ -1,5 +1,4 @@
-use crate::{extract_bits, wordutils::read_u64_word, RecordHeader};
-use anyhow::Result;
+use crate::{extract_bits, wordutils::read_u64_word, RecordHeader, Result};
 use std::io::Read;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

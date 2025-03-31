@@ -1,4 +1,4 @@
-use crate::extract_bits;
+use crate::{extract_bits, Result};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,7 +51,7 @@ impl RecordHeader {
         extract_bits!(self.value, 4, 15) as u16
     }
 
-    pub fn record_type(&self) -> anyhow::Result<RecordType> {
+    pub fn record_type(&self) -> Result<RecordType> {
         Ok(RecordType::try_from(extract_bits!(self.value, 0, 3) as u8)?)
     }
 }

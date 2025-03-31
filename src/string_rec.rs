@@ -1,6 +1,5 @@
 use crate::wordutils;
-use crate::{extract_bits, RecordHeader};
-use anyhow::Result;
+use crate::{extract_bits, RecordHeader, Result};
 use std::io::Read;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
