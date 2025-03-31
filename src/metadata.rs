@@ -1,8 +1,12 @@
 use std::io::{Read, Write};
 use thiserror::Error;
 
-
-use crate::{extract_bits, header::CustomField, wordutils::{self, pad_to_multiple_of_8}, RecordHeader, Result};
+use crate::{
+    extract_bits,
+    header::CustomField,
+    wordutils::{self, pad_to_multiple_of_8},
+    RecordHeader, Result,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TraceInfo {
@@ -12,21 +16,25 @@ pub struct TraceInfo {
 }
 
 impl TraceInfo {
-    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> { 
-        let header = RecordHeader::build(crate::header::RecordType::Metadata, 1, vec![
-            CustomField {
-                width: 4,
-                value: MetadataType::TraceInfo as u64
-            },
-            CustomField {
-                width: 4,
-                value: self.trace_info_type as u64
-            },
-            CustomField {
-                width: 40,
-                value: self.data
-            }
-        ])?;
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
+        let header = RecordHeader::build(
+            crate::header::RecordType::Metadata,
+            1,
+            vec![
+                CustomField {
+                    width: 4,
+                    value: MetadataType::TraceInfo as u64,
+                },
+                CustomField {
+                    width: 4,
+                    value: self.trace_info_type as u64,
+                },
+                CustomField {
+                    width: 40,
+                    value: self.data,
+                },
+            ],
+        )?;
 
         writer.write_all(&header.value.to_le_bytes())?;
 
@@ -41,25 +49,29 @@ pub struct ProviderInfo {
 }
 
 impl ProviderInfo {
-    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> { 
-        let header = RecordHeader::build(crate::header::RecordType::Metadata, 1, vec![
-            CustomField {
-                width: 4,
-                value: MetadataType::ProviderInfo as u64
-            },
-            CustomField {
-                width: 32,
-                value: self.provider_id as u64
-            },
-            CustomField {
-                width: 8,
-                value: self.provider_name.len() as u64
-            }
-        ])?;
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
+        let header = RecordHeader::build(
+            crate::header::RecordType::Metadata,
+            1,
+            vec![
+                CustomField {
+                    width: 4,
+                    value: MetadataType::ProviderInfo as u64,
+                },
+                CustomField {
+                    width: 32,
+                    value: self.provider_id as u64,
+                },
+                CustomField {
+                    width: 8,
+                    value: self.provider_name.len() as u64,
+                },
+            ],
+        )?;
 
         writer.write_all(&header.value.to_le_bytes())?;
 
-        let padded= pad_to_multiple_of_8(self.provider_name.as_bytes());
+        let padded = pad_to_multiple_of_8(self.provider_name.as_bytes());
         writer.write_all(&padded)?;
 
         Ok(())
@@ -71,17 +83,21 @@ pub struct ProviderSection {
     pub provider_id: u32,
 }
 impl ProviderSection {
-    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> { 
-        let header = RecordHeader::build(crate::header::RecordType::Metadata, 1, vec![
-            CustomField {
-                width: 4,
-                value: MetadataType::ProviderSection as u64
-            },
-            CustomField {
-                width: 32,
-                value: self.provider_id as u64
-            },
-        ])?;
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
+        let header = RecordHeader::build(
+            crate::header::RecordType::Metadata,
+            1,
+            vec![
+                CustomField {
+                    width: 4,
+                    value: MetadataType::ProviderSection as u64,
+                },
+                CustomField {
+                    width: 32,
+                    value: self.provider_id as u64,
+                },
+            ],
+        )?;
 
         writer.write_all(&header.value.to_le_bytes())?;
         Ok(())
@@ -95,27 +111,30 @@ pub struct ProviderEvent {
 }
 
 impl ProviderEvent {
-    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> { 
-        let header = RecordHeader::build(crate::header::RecordType::Metadata, 1, vec![
-            CustomField {
-                width: 4,
-                value: MetadataType::ProviderEvent as u64
-            },
-            CustomField {
-                width: 32,
-                value: self.provider_id as u64
-            },
-            CustomField {
-                width: 4,
-                value: self.event_id as u64
-            }
-        ])?;
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
+        let header = RecordHeader::build(
+            crate::header::RecordType::Metadata,
+            1,
+            vec![
+                CustomField {
+                    width: 4,
+                    value: MetadataType::ProviderEvent as u64,
+                },
+                CustomField {
+                    width: 32,
+                    value: self.provider_id as u64,
+                },
+                CustomField {
+                    width: 4,
+                    value: self.event_id as u64,
+                },
+            ],
+        )?;
 
         writer.write_all(&header.value.to_le_bytes())?;
         Ok(())
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -178,8 +197,10 @@ impl MetadataRecord {
 
                 let provider_name = wordutils::read_aligned_str(reader, namelen)?;
 
-                Ok(Self::ProviderInfo(ProviderInfo { provider_id, provider_name })) 
-
+                Ok(Self::ProviderInfo(ProviderInfo {
+                    provider_id,
+                    provider_name,
+                }))
             }
             MetadataType::ProviderSection => {
                 let provider_id = Self::provider_id(&header);
@@ -196,7 +217,10 @@ impl MetadataRecord {
             MetadataType::TraceInfo => {
                 let trace_info_type = extract_bits!(header.value, 20, 23) as u8;
                 let data = extract_bits!(header.value, 24, 63);
-                Ok(Self::TraceInfo(TraceInfo { trace_info_type, data }))
+                Ok(Self::TraceInfo(TraceInfo {
+                    trace_info_type,
+                    data,
+                }))
             }
         }
     }
@@ -205,18 +229,10 @@ impl MetadataRecord {
             MetadataRecord::MagicNumber => {
                 writer.write_all(&Self::MAGIC_NUMBER_RECORD.to_le_bytes())?;
             }
-            MetadataRecord::ProviderEvent(e) => {
-                e.write(writer)?
-            }
-            MetadataRecord::ProviderInfo(e) => {
-                e.write(writer)?
-            }
-            MetadataRecord::ProviderSection(e) => {
-                e.write(writer)?
-            }
-            MetadataRecord::TraceInfo(e) => {
-                e.write(writer)?
-            }
+            MetadataRecord::ProviderEvent(e) => e.write(writer)?,
+            MetadataRecord::ProviderInfo(e) => e.write(writer)?,
+            MetadataRecord::ProviderSection(e) => e.write(writer)?,
+            MetadataRecord::TraceInfo(e) => e.write(writer)?,
         }
         Ok(())
     }

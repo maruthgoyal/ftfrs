@@ -89,19 +89,22 @@ pub struct DurationComplete {
 
 impl Instant {
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
-        self.event.write_event(writer, EventType::Instant, Vec::new())
+        self.event
+            .write_event(writer, EventType::Instant, Vec::new())
     }
 }
 
 impl DurationBegin {
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
-        self.event.write_event(writer, EventType::DurationBegin, Vec::new())
+        self.event
+            .write_event(writer, EventType::DurationBegin, Vec::new())
     }
 }
 
 impl DurationEnd {
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
-        self.event.write_event(writer, EventType::DurationEnd, Vec::new())
+        self.event
+            .write_event(writer, EventType::DurationEnd, Vec::new())
     }
 }
 
@@ -110,11 +113,10 @@ impl Counter {
         let counter_id = read_u64_word(reader)?;
         Ok(Self { event, counter_id })
     }
-    
+
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
-        self.event.write_event(writer, EventType::Counter, vec![
-            self.counter_id
-        ])
+        self.event
+            .write_event(writer, EventType::Counter, vec![self.counter_id])
     }
 }
 
@@ -126,11 +128,13 @@ impl DurationComplete {
             duration_ticks,
         })
     }
-    
+
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
-        self.event.write_event(writer, EventType::DurationComplete, vec![
-            self.duration_ticks
-        ])
+        self.event.write_event(
+            writer,
+            EventType::DurationComplete,
+            vec![self.duration_ticks],
+        )
     }
 }
 
@@ -148,11 +152,11 @@ impl Event {
         }
 
         if let StringOrRef::String(s) = &self.category {
-            num_words += (s.len() + 7)/8;
+            num_words += (s.len() + 7) / 8;
         }
 
         if let StringOrRef::String(s) = &self.name {
-            num_words += (s.len() + 7)/8;
+            num_words += (s.len() + 7) / 8;
         }
 
         if !self.arguments.is_empty() {
@@ -319,7 +323,9 @@ impl EventRecord {
             EventRecord::DurationBegin(e) => e.write(writer),
             EventRecord::DurationEnd(e) => e.write(writer),
             EventRecord::DurationComplete(e) => e.write(writer),
-            _ => Err(FtfError::Unimplemented("Write not implemented for this type yet".to_string()))
+            _ => Err(FtfError::Unimplemented(
+                "Write not implemented for this type yet".to_string(),
+            )),
         }
     }
 }

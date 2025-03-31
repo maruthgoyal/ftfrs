@@ -6,7 +6,7 @@ use std::io::Cursor;
 #[allow(clippy::identity_op)]
 mod tests {
     use super::*;
-    use crate::{Result, Record};
+    use crate::{Record, Result};
 
     #[test]
     fn test_string_record_parsing() -> Result<()> {
@@ -57,11 +57,12 @@ mod tests {
 
         // Verify the header
         let header_value = u64::from_le_bytes([
-            buffer[0], buffer[1], buffer[2], buffer[3],
-            buffer[4], buffer[5], buffer[6], buffer[7],
+            buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
-        let header = RecordHeader { value: header_value };
-        
+        let header = RecordHeader {
+            value: header_value,
+        };
+
         assert_eq!(header.record_type()?, crate::header::RecordType::String);
         assert_eq!(header.size() * 8, 24); // 3 words * 8 bytes
 
@@ -70,7 +71,7 @@ mod tests {
         for i in 8..24 {
             string_data.push(buffer[i]);
         }
-        
+
         // Extract the string (removing padding)
         let string = String::from_utf8(string_data[0..11].to_vec())?;
         assert_eq!(string, "Hello World");
@@ -130,7 +131,7 @@ mod tests {
                 assert_eq!(parsed_record.index, original_record.index);
                 assert_eq!(parsed_record.length, original_record.length);
                 assert_eq!(parsed_record.value, original_record.value);
-            },
+            }
             _ => panic!("Expected String record, got {:?}", record),
         }
 

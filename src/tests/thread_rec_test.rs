@@ -6,7 +6,7 @@ use std::io::Cursor;
 #[allow(clippy::identity_op)]
 mod tests {
     use super::*;
-    use crate::{Result, Record};
+    use crate::{Record, Result};
 
     #[test]
     fn test_thread_record_parsing() {
@@ -59,11 +59,12 @@ mod tests {
 
         // Verify the header
         let header_value = u64::from_le_bytes([
-            buffer[0], buffer[1], buffer[2], buffer[3],
-            buffer[4], buffer[5], buffer[6], buffer[7],
+            buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
-        let header = RecordHeader { value: header_value };
-        
+        let header = RecordHeader {
+            value: header_value,
+        };
+
         assert_eq!(header.record_type()?, crate::header::RecordType::Thread);
         assert_eq!(header.size() * 8, 24); // 3 words * 8 bytes
 
@@ -73,15 +74,15 @@ mod tests {
 
         // Verify the process KOID
         let process_koid = u64::from_le_bytes([
-            buffer[8], buffer[9], buffer[10], buffer[11],
-            buffer[12], buffer[13], buffer[14], buffer[15],
+            buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14],
+            buffer[15],
         ]);
         assert_eq!(process_koid, 12345);
 
         // Verify the thread KOID
         let thread_koid = u64::from_le_bytes([
-            buffer[16], buffer[17], buffer[18], buffer[19],
-            buffer[20], buffer[21], buffer[22], buffer[23],
+            buffer[16], buffer[17], buffer[18], buffer[19], buffer[20], buffer[21], buffer[22],
+            buffer[23],
         ]);
         assert_eq!(thread_koid, 67890);
 
@@ -103,15 +104,15 @@ mod tests {
 
         // Verify the process KOID
         let process_koid = u64::from_le_bytes([
-            buffer[8], buffer[9], buffer[10], buffer[11],
-            buffer[12], buffer[13], buffer[14], buffer[15],
+            buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14],
+            buffer[15],
         ]);
         assert_eq!(process_koid, u64::MAX - 10);
 
         // Verify the thread KOID
         let thread_koid = u64::from_le_bytes([
-            buffer[16], buffer[17], buffer[18], buffer[19],
-            buffer[20], buffer[21], buffer[22], buffer[23],
+            buffer[16], buffer[17], buffer[18], buffer[19], buffer[20], buffer[21], buffer[22],
+            buffer[23],
         ]);
         assert_eq!(thread_koid, u64::MAX);
 
@@ -141,7 +142,7 @@ mod tests {
                 assert_eq!(parsed_record.index, original_record.index);
                 assert_eq!(parsed_record.process_koid, original_record.process_koid);
                 assert_eq!(parsed_record.thread_koid, original_record.thread_koid);
-            },
+            }
             _ => panic!("Expected Thread record, got {:?}", record),
         }
 

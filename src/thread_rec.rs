@@ -21,19 +21,21 @@ impl ThreadRecord {
             thread_koid,
         })
     }
-    
+
     pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
-        let header = RecordHeader::build(crate::header::RecordType::Thread, 3, vec![
-            CustomField {
+        let header = RecordHeader::build(
+            crate::header::RecordType::Thread,
+            3,
+            vec![CustomField {
                 width: 8,
-                value: self.index as u64
-            }
-        ])?;
+                value: self.index as u64,
+            }],
+        )?;
 
         writer.write_all(&header.value.to_le_bytes())?;
         writer.write_all(&self.process_koid.to_le_bytes())?;
         writer.write_all(&self.thread_koid.to_le_bytes())?;
-        
+
         Ok(())
     }
 }

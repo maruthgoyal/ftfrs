@@ -69,7 +69,7 @@ impl StringOrRef {
     pub fn to_field(&self) -> u16 {
         match self {
             StringOrRef::Ref(r) => *r & 0x7FFF,
-            StringOrRef::String(s)  => (s.len() as u16) | 0x8000
+            StringOrRef::String(s) => (s.len() as u16) | 0x8000,
         }
     }
 }
@@ -84,7 +84,7 @@ impl ThreadOrRef {
     pub fn to_field(&self) -> u8 {
         match self {
             Self::ProcessAndThread(_, _) => 0,
-            Self::Ref(r) => *r
+            Self::Ref(r) => *r,
         }
     }
 }
@@ -144,22 +144,12 @@ impl Record {
 
     pub fn write<W: Write>(&self, mut writer: W) -> Result<()> {
         match self {
-            Self::Metadata(r) => {
-                Ok(r.write(&mut writer)?)
-            }
-            Self::Initialization(r) => {
-                Ok(r.write(&mut writer)?)
-            }
-            Self::String(r) => {
-                Ok(r.write(&mut writer)?)
-            },
-            Self::Thread(r) => {
-                Ok(r.write(&mut writer)?)
-            }
-            Self::Event(r) => {
-                Ok(r.write(&mut writer)?)
-            }
-            _ => Err(FtfError::Unimplemented("Write".to_string()))
+            Self::Metadata(r) => Ok(r.write(&mut writer)?),
+            Self::Initialization(r) => Ok(r.write(&mut writer)?),
+            Self::String(r) => Ok(r.write(&mut writer)?),
+            Self::Thread(r) => Ok(r.write(&mut writer)?),
+            Self::Event(r) => Ok(r.write(&mut writer)?),
+            _ => Err(FtfError::Unimplemented("Write".to_string())),
         }
     }
 }

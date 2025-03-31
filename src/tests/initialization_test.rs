@@ -6,8 +6,8 @@ use std::io::Cursor;
 #[allow(clippy::identity_op)]
 mod tests {
     use super::*;
-    use crate::Result;
     use crate::Record;
+    use crate::Result;
 
     #[test]
     fn test_initialization_record_parsing() {
@@ -49,18 +49,22 @@ mod tests {
 
         // Verify the header
         let header_value = u64::from_le_bytes([
-            buffer[0], buffer[1], buffer[2], buffer[3],
-            buffer[4], buffer[5], buffer[6], buffer[7],
+            buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
-        let header = RecordHeader { value: header_value };
-        
-        assert_eq!(header.record_type()?, crate::header::RecordType::Initialization);
+        let header = RecordHeader {
+            value: header_value,
+        };
+
+        assert_eq!(
+            header.record_type()?,
+            crate::header::RecordType::Initialization
+        );
         assert_eq!(header.size() * 8, 16); // 2 words * 8 bytes
 
         // Verify the data
         let ticks_value = u64::from_le_bytes([
-            buffer[8], buffer[9], buffer[10], buffer[11],
-            buffer[12], buffer[13], buffer[14], buffer[15],
+            buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14],
+            buffer[15],
         ]);
         assert_eq!(ticks_value, 10_000_000);
 
@@ -71,7 +75,7 @@ mod tests {
     fn test_initialization_record_roundtrip() -> Result<()> {
         // Create an initialization record
         let original_record = InitializationRecord {
-            ticks_per_second: 12_345_678, 
+            ticks_per_second: 12_345_678,
         };
 
         // Write it to a buffer
@@ -85,8 +89,11 @@ mod tests {
         // Verify it matches the original
         match record {
             Record::Initialization(parsed_record) => {
-                assert_eq!(parsed_record.ticks_per_second, original_record.ticks_per_second);
-            },
+                assert_eq!(
+                    parsed_record.ticks_per_second,
+                    original_record.ticks_per_second
+                );
+            }
             _ => panic!("Expected Initialization record, got {:?}", record),
         }
 
