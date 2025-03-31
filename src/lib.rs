@@ -3,8 +3,9 @@ mod header;
 mod metadata;
 mod initialization;
 mod stringrec;
-mod strutils;
+mod wordutils;
 mod threadrec;
+mod event;
 #[cfg(test)]
 mod tests {
     pub mod bitutils_test;
@@ -15,19 +16,30 @@ mod tests {
 }
 
 use crate::metadata::MetadataRecord;
+use event::{Event, EventRecord};
 use header::{RecordHeader, RecordType};
 use initialization::InitializationRecord;
 use stringrec::StringRecord;
 use threadrec::ThreadRecord;
+use wordutils::read_u64_word;
 
 use std::io::Read;
+
+enum StringOrRef {
+    String(String),
+    Ref(u16),
+}
+enum ThreadOrRef {
+    ProcessAndThread(u64, u64),
+    Ref(u8),
+}
 
 enum Record {
     Metadata(MetadataRecord),
     Initialization(InitializationRecord),
     String(StringRecord),
     Thread(ThreadRecord),
-    Event,
+    Event(EventRecord),
     Blob,
     Userspace,
     Kernel,
@@ -55,9 +67,7 @@ enum Argument {
 
 impl Record {
     fn from_bytes<U: Read>(mut reader: U) -> anyhow::Result<Record> {
-        let mut header = [0; 8];
-        reader.read_exact(&mut header)?;
-        let header = RecordHeader { value: u64::from_le_bytes(header) };
+        let header = RecordHeader { value: read_u64_word(&mut reader)? };
 
         let record_type = header.record_type()?;
         match record_type {
@@ -65,6 +75,7 @@ impl Record {
             RecordType::Initialization => Ok(Self::Initialization(InitializationRecord::parse(&mut reader, header)?)),
             RecordType::String => Ok(Self::String(StringRecord::parse(&mut reader, header)?)),
             RecordType::Thread => Ok(Self::Thread(ThreadRecord::parse(&mut reader, header)?)),
+            RecordType::Event => Ok(Self::Event(EventRecord::parse(&mut reader, header)?)),
             _ => Err(anyhow::anyhow!("Unsupported record type {:?}", record_type)),
         }
     }

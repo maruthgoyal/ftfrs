@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::io::Read;
 use thiserror::Error;
 
-use crate::{extract_bits, strutils, RecordHeader};
+use crate::{extract_bits, wordutils, RecordHeader};
 
 #[derive(Debug)]
 pub struct TraceInfo {
@@ -88,7 +88,7 @@ impl MetadataRecord {
                 let provider_id = Self::provider_id(&header);
                 let namelen = extract_bits!(header.value, 52, 59) as usize;
 
-                let provider_name = strutils::read_aligned_str(reader, namelen, &header)?;
+                let provider_name = wordutils::read_aligned_str(reader, namelen)?;
 
                 Ok(Self::ProviderInfo(ProviderInfo { provider_id, provider_name })) 
 

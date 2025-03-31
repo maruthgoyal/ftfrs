@@ -1,4 +1,4 @@
-use crate::header::RecordHeader;
+use crate::{header::RecordHeader, wordutils::read_u64_word};
 use std::io::Read;
 use anyhow::Result;
 
@@ -9,8 +9,6 @@ pub struct InitializationRecord {
 
 impl InitializationRecord {
     pub fn parse<U: Read>(reader: &mut U, header: RecordHeader) -> Result<Self> {
-        let mut data = [0; 8];
-        reader.read_exact(&mut data)?;
-        Ok(InitializationRecord { ticks_per_second: u64::from_le_bytes(data) })
+        Ok(InitializationRecord { ticks_per_second: read_u64_word(reader)? })
     } 
 }

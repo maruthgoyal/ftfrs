@@ -1,4 +1,4 @@
-use crate::strutils;
+use crate::wordutils;
 use crate::{extract_bits, RecordHeader};
 use anyhow::Result;
 use std::io::Read;
@@ -17,7 +17,7 @@ impl StringRecord {
         let index = extract_bits!(header.value, 16, 30) as u16;
         let length = extract_bits!(header.value, 32, 46) as u32;
 
-        let value = strutils::read_aligned_str(reader, length as usize, &header)?;
+        let value = wordutils::read_aligned_str(reader, length as usize)?;
         Ok(StringRecord {
             index,
             length,

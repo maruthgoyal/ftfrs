@@ -1,4 +1,4 @@
-use crate::{extract_bits, RecordHeader};
+use crate::{extract_bits, wordutils::read_u64_word, RecordHeader};
 use anyhow::Result;
 use std::io::Read;
 
@@ -13,13 +13,8 @@ impl ThreadRecord {
     pub fn parse<U: Read>(reader: &mut U, header: RecordHeader) -> Result<Self> {
         let index = extract_bits!(header.value, 16, 23) as u8;
 
-        let mut buf = [0; 8];
-        reader.read_exact(&mut buf)?;
-        let process_koid = u64::from_le_bytes(buf);
-
-        let mut buf = [0; 8];
-        reader.read_exact(&mut buf)?;
-        let thread_koid = u64::from_le_bytes(buf);
+        let process_koid = read_u64_word(reader)?;
+        let thread_koid = read_u64_word(reader)?;
 
         Ok(ThreadRecord {
             index,
