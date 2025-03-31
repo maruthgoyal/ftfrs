@@ -18,3 +18,10 @@ macro_rules! extract_bits {
         (($value) & MASK) >> $i
     }};
 }
+
+#[macro_export]
+macro_rules! mask_length {
+    ($value:expr, $i:expr) => {
+        (($value) & (1u64 << ($i)) - 1)
+    };
+}

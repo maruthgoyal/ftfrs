@@ -19,3 +19,22 @@ pub fn read_aligned_str<U: Read>(reader: &mut U, len: usize) -> Result<String> {
         Ok(String::from_utf8(res)?)
     }
 }
+
+pub fn pad_to_multiple_of_8(input: &[u8]) -> Vec<u8> {
+    let remainder = input.len() % 8;
+    
+    // If the length is already a multiple of 8, no padding needed
+    if remainder == 0 {
+        return input.to_vec();
+    }
+    
+    // Calculate how many padding bytes are needed
+    let padding_needed = 8 - remainder;
+    
+    // Create a new vector with the original data plus padding
+    let mut padded = Vec::with_capacity(input.len() + padding_needed);
+    padded.extend_from_slice(input);
+    padded.extend(vec![0; padding_needed]);
+    
+    padded
+}

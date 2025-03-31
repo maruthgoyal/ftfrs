@@ -1,5 +1,5 @@
-use crate::{extract_bits, wordutils::read_u64_word, RecordHeader, Result};
-use std::io::Read;
+use crate::{extract_bits, header::CustomField, wordutils::read_u64_word, RecordHeader, Result};
+use std::io::{Read, Write};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ThreadRecord {
@@ -20,5 +20,20 @@ impl ThreadRecord {
             process_koid,
             thread_koid,
         })
+    }
+    
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
+        let header = RecordHeader::build(crate::header::RecordType::Thread, 3, vec![
+            CustomField {
+                width: 8,
+                value: self.index as u64
+            }
+        ])?;
+
+        writer.write_all(&header.value.to_le_bytes())?;
+        writer.write_all(&self.process_koid.to_le_bytes())?;
+        writer.write_all(&self.thread_koid.to_le_bytes())?;
+        
+        Ok(())
     }
 }

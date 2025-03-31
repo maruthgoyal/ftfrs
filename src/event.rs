@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::{Read, Write};
 use thiserror::Error;
 use crate::{FtfError, Result};
 
@@ -188,4 +188,9 @@ impl EventRecord {
         ))
 
     }
+
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
+        Ok(())
+    }
+
 }

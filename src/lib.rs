@@ -24,7 +24,7 @@ use string_rec::StringRecord;
 use thread_rec::ThreadRecord;
 use wordutils::read_u64_word;
 
-use std::io::Read;
+use std::io::{Read, Write};
 use std::string::FromUtf8Error;
 use thiserror::Error;
 
@@ -48,10 +48,10 @@ pub enum FtfError {
 
     #[error("Unsupported record type: {0:?}")]
     UnsupportedRecordType(RecordType),
-    
+
     #[error("Unimplemented feature: {0}")]
     Unimplemented(String),
-    
+
     #[error("Parse error: {0}")]
     ParseError(String),
 }
@@ -68,10 +68,6 @@ pub enum StringOrRef {
 pub enum ThreadOrRef {
     ProcessAndThread(u64, u64),
     Ref(u8),
-}
-
-trait WriteRec<W: std::io::Write> {
-    fn write(writer: W) -> Result<()>;
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -124,6 +120,27 @@ impl Record {
             RecordType::Thread => Ok(Self::Thread(ThreadRecord::parse(&mut reader, header)?)),
             RecordType::Event => Ok(Self::Event(EventRecord::parse(&mut reader, header)?)),
             _ => Err(FtfError::UnsupportedRecordType(record_type)),
+        }
+    }
+
+    pub fn write<W: Write>(&self, mut writer: W) -> Result<()> {
+        match self {
+            Self::Metadata(r) => {
+                Ok(r.write(&mut writer)?)
+            }
+            Self::Initialization(r) => {
+                Ok(r.write(&mut writer)?)
+            }
+            Self::String(r) => {
+                Ok(r.write(&mut writer)?)
+            },
+            Self::Thread(r) => {
+                Ok(r.write(&mut writer)?)
+            }
+            Self::Event(r) => {
+                Ok(r.write(&mut writer)?)
+            }
+            _ => Err(FtfError::Unimplemented("Write".to_string()))
         }
     }
 }

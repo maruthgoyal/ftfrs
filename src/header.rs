@@ -1,4 +1,4 @@
-use crate::{extract_bits, Result};
+use crate::{extract_bits, mask_length, Result};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,11 +42,36 @@ impl TryFrom<u8> for RecordType {
     type Error = RecordTypeParseError;
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CustomField {
+    pub width: u8,
+    pub value: u64,
+}
 pub struct RecordHeader {
     pub value: u64,
 }
 
 impl RecordHeader {
+    pub fn build(
+        record_type: RecordType,
+        record_size: u8,
+        fields: Vec<CustomField>,
+    ) -> Result<Self> {
+        let record_type = record_type as u8;
+        let mut res: u64 = 0;
+
+        res |= record_type as u64;
+        res |= (record_size as u64) << 4;
+
+        let mut offset: u8 = 4 + 12;
+        for field in fields {
+            res |= mask_length!(field.value, field.width) << offset;
+            offset += field.width;
+        }
+
+        Ok(Self { value: res })
+    }
+
     pub fn size(&self) -> u16 {
         extract_bits!(self.value, 4, 15) as u16
     }
