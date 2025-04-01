@@ -2,6 +2,9 @@
 
 A Rust library for reading and writing [Fuchsia Trace Format (FTF)](https://fuchsia.dev/fuchsia-src/development/tracing/trace-format) traces.
 
+> ⚠️ **WARNING** ⚠️  
+> This is prototype, in-development software. The API may change significantly between versions and some features are not yet fully implemented. Use in production environments is not recommended at this time.
+
 ## Features
 
 - Read and write FTF trace files
@@ -178,6 +181,29 @@ let event_with_inline = Record::create_instant_event(
     Vec::new(),
 );
 ```
+
+## Roadmap 🚀
+
+The following items are planned for future development:
+
+- 🚧 Argument support for events
+- 🔄 Performance optimizations:
+  - Add benchmarks
+  - Memory usage improvements (in-memory layout mirroring disk format to reduce memory footprint)
+  - Write optimizations (avoid unnecessary string copies for padding)
+- 🔮 Support for remaining record types:
+  - AsyncBegin/AsyncInstant/AsyncEnd events
+  - FlowBegin/FlowStep/FlowEnd events
+  - Blob records
+  - Userspace records
+  - Kernel records
+  - Scheduling records
+  - Log records
+  - LargeBlob records
+
+## Contributing
+
+Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ## License
 

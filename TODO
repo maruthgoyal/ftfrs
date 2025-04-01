@@ -1,6 +1,0 @@
-- Add public API
-- Add argument support
-- Performance optimizations
-    - Memory: how many records we can fit in memory will be important. Maybe in-memory layout should mirror disk format
-    - write: don't copy strings for 0-padding, just write 0s.
-- Add support for remaining records
