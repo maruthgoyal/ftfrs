@@ -71,8 +71,8 @@ impl StringRef {
     }
 
     pub fn field_is_ref(field: u16) -> bool {
-        // test high bit is set
-        field & 0x8000 == 0x8000
+        // test high bit is not set
+        (field & 0x8000) == 0
     }
 }
 
