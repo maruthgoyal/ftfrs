@@ -7,14 +7,13 @@ mod string_rec;
 mod thread_rec;
 mod wordutils;
 
-// Re-export types needed for the public API
-pub use event::{Event, EventRecord, Instant, DurationBegin, DurationEnd, DurationComplete, Counter, EventTypeParseError};
-pub use header::{RecordType, RecordHeader, CustomField, RecordTypeParseError};
-pub use initialization::InitializationRecord;
-pub use metadata::{MetadataRecord, ProviderInfo, ProviderSection, ProviderEvent, TraceInfo, MetadataType, MetadataTypeParseError};
-pub use string_rec::StringRecord;
-pub use thread_rec::ThreadRecord;
-pub use wordutils::read_u64_word;
+use event::{EventRecord, EventTypeParseError};
+use header::{RecordHeader, RecordType, RecordTypeParseError};
+use initialization::InitializationRecord;
+use metadata::{MetadataRecord, MetadataTypeParseError};
+use string_rec::StringRecord;
+use thread_rec::ThreadRecord;
+use wordutils::read_u64_word;
 
 #[cfg(test)]
 mod tests {

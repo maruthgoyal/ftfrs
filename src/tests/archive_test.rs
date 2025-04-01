@@ -1,8 +1,7 @@
 use crate::{
-    event::{Counter, Event, EventRecord, EventType, Instant},
-    header::{CustomField, RecordHeader, RecordType},
+    event::{Event, EventRecord, Instant},
     initialization::InitializationRecord,
-    metadata::{MetadataRecord, MetadataType, ProviderInfo, TraceInfo},
+    metadata::{MetadataRecord, ProviderInfo, TraceInfo},
     string_rec::StringRecord,
     thread_rec::ThreadRecord,
     Archive, Record, Result, StringOrRef, ThreadOrRef,
@@ -238,7 +237,7 @@ mod tests {
         let deserialized = Archive::read(&mut cursor)?;
 
         // Should have parsed records up to the truncation
-        assert!(deserialized.records.len() > 0);
+        assert!(!deserialized.records.is_empty());
         assert!(deserialized.records.len() <= archive.records.len());
 
         Ok(())
