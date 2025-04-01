@@ -1,9 +1,6 @@
 use crate::{
     event::{Event, EventRecord, Instant},
-    initialization::InitializationRecord,
-    metadata::{MetadataRecord, ProviderInfo, TraceInfo},
-    string_rec::StringRecord,
-    thread_rec::ThreadRecord,
+    metadata::MetadataRecord,
     Archive, Record, Result, StringOrRef, ThreadOrRef,
 };
 use std::io::Cursor;
@@ -12,48 +9,26 @@ use std::io::Cursor;
 mod tests {
     use super::*;
 
-    /// Creates a ProviderInfo metadata record for testing
-    fn create_provider_info() -> MetadataRecord {
-        MetadataRecord::ProviderInfo(ProviderInfo {
-            provider_id: 42,
-            provider_name: "test_provider".to_string(),
-        })
+    fn create_provider_info() -> Record {
+        Record::create_provider_info(42, "test_provider".to_string())
     }
 
-    /// Creates a TraceInfo metadata record for testing
-    fn create_trace_info() -> MetadataRecord {
-        MetadataRecord::TraceInfo(TraceInfo {
-            trace_info_type: 1,
-            data: 0x12345678,
-        })
+    fn create_trace_info() -> Record {
+        Record::create_trace_info(1, [0x12, 0x34, 0x56, 0x78, 0x90])
     }
 
-    /// Creates a StringRecord for testing
-    fn create_string_record() -> StringRecord {
-        StringRecord {
-            index: 1,
-            length: 11,
-            value: "test_string".to_string(),
-        }
+    fn create_string_record() -> Record {
+        Record::create_string(1, 11, "test_string".to_string())
     }
 
-    /// Creates a ThreadRecord for testing
-    fn create_thread_record() -> ThreadRecord {
-        ThreadRecord {
-            index: 1,
-            process_koid: 0x1234,
-            thread_koid: 0x5678,
-        }
+    fn create_thread_record() -> Record {
+        Record::create_thread(1, 0x1234, 0x5678)
     }
 
-    /// Creates an InitializationRecord for testing
-    fn create_initialization_record() -> InitializationRecord {
-        InitializationRecord {
-            ticks_per_second: 1000000,
-        }
+    fn create_initialization_record() -> Record {
+        Record::create_initialization(1000000)
     }
 
-    /// Creates an Instant event for testing
     fn create_instant_event() -> EventRecord {
         let event = Event {
             timestamp: 100,
@@ -69,20 +44,13 @@ mod tests {
     /// Creates a sample archive with various record types
     fn create_sample_archive() -> Archive {
         let records = vec![
-            // Magic number record
-            Record::Metadata(MetadataRecord::MagicNumber),
-            // Provider info record
-            Record::Metadata(create_provider_info()),
-            // Trace info record
-            Record::Metadata(create_trace_info()),
-            // String record
-            Record::String(create_string_record()),
-            // Thread record
-            Record::Thread(create_thread_record()),
-            // Initialization record
-            Record::Initialization(create_initialization_record()),
-            // Event record (Instant event)
-            Record::Event(create_instant_event()),
+            Record::create_magic_number(),
+            create_provider_info(),
+            create_trace_info(),
+            create_string_record(),
+            create_thread_record(),
+            create_initialization_record(),
+            create_instant_event(),
         ];
 
         Archive { records }
@@ -291,15 +259,12 @@ mod tests {
     fn test_archive_appending() -> Result<()> {
         // Create two separate archives
         let archive1 = Archive {
-            records: vec![
-                Record::Metadata(MetadataRecord::MagicNumber),
-                Record::String(create_string_record()),
-            ],
+            records: vec![Record::create_magic_number(), create_string_record()],
         };
 
         let thread_record = create_thread_record();
         let archive2 = Archive {
-            records: vec![Record::Thread(thread_record)],
+            records: vec![thread_record],
         };
 
         // Serialize both to the same buffer (appending)
@@ -322,8 +287,8 @@ mod tests {
 
         match &combined.records[1] {
             Record::String(sr) => {
-                assert_eq!(sr.index, create_string_record().index);
-                assert_eq!(sr.value, create_string_record().value);
+                assert_eq!(sr.index, create_string_record().index());
+                assert_eq!(sr.value, create_string_record().value());
             }
             _ => panic!("Expected StringRecord, got {:?}", combined.records[1]),
         }

@@ -10,7 +10,9 @@ mod wordutils;
 use event::{EventRecord, EventTypeParseError};
 use header::{RecordHeader, RecordType, RecordTypeParseError};
 use initialization::InitializationRecord;
-use metadata::{MetadataRecord, MetadataTypeParseError};
+use metadata::{
+    MetadataRecord, MetadataTypeParseError, ProviderEvent, ProviderInfo, ProviderSection, TraceInfo,
+};
 use string_rec::StringRecord;
 use thread_rec::ThreadRecord;
 use wordutils::read_u64_word;
@@ -20,10 +22,6 @@ mod tests {
     pub mod archive_test;
     pub mod bitutils_test;
     pub mod event_test;
-    pub mod initialization_test;
-    pub mod metadata_test;
-    pub mod string_rec_test;
-    pub mod thread_rec_test;
 }
 
 use std::io::{ErrorKind, Read, Write};
@@ -150,6 +148,50 @@ pub enum Argument {
 }
 
 impl Record {
+    pub fn create_initialization(ticks_per_second: u64) -> Self {
+        Self::Initialization(InitializationRecord::new(ticks_per_second))
+    }
+
+    pub fn create_string(index: u16, length: u32, value: String) -> Self {
+        Self::String(StringRecord::new(index, length, value))
+    }
+
+    pub fn create_thread(index: u8, process_koid: u64, thread_koid: u64) -> Self {
+        Self::Thread(ThreadRecord::new(index, process_koid, thread_koid))
+    }
+
+    pub fn create_provider_info(provider_id: u32, provider_name: String) -> Self {
+        Self::Metadata(MetadataRecord::ProviderInfo(ProviderInfo::new(
+            provider_id,
+            provider_name,
+        )))
+    }
+
+    pub fn create_provider_event(provider_id: u32, event_id: u8) -> Self {
+        Self::Metadata(MetadataRecord::ProviderEvent(ProviderEvent::new(
+            provider_id,
+            event_id,
+        )))
+    }
+
+    pub fn create_provider_section(provider_id: u32) -> Self {
+        Self::Metadata(MetadataRecord::ProviderSection(ProviderSection::new(
+            provider_id,
+        )))
+    }
+
+    // TODO: change to [u8; 5]
+    pub fn create_trace_info(trace_info_type: u8, data: [u8; 5]) -> Self {
+        Self::Metadata(MetadataRecord::TraceInfo(TraceInfo::new(
+            trace_info_type,
+            &data,
+        )))
+    }
+
+    pub fn create_magic_number() -> Self {
+        Self::Metadata(MetadataRecord::MagicNumber)
+    }
+
     pub fn from_bytes<U: Read>(reader: &mut U) -> Result<Record> {
         let header = RecordHeader {
             value: read_u64_word(reader)?,

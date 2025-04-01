@@ -43,16 +43,16 @@ impl TryFrom<u8> for RecordType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CustomField {
+pub(super) struct CustomField {
     pub width: u8,
     pub value: u64,
 }
-pub struct RecordHeader {
+pub(super) struct RecordHeader {
     pub value: u64,
 }
 
 impl RecordHeader {
-    pub fn build(
+    pub(super) fn build(
         record_type: RecordType,
         record_size: u8,
         fields: Vec<CustomField>,
