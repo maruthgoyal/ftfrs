@@ -75,6 +75,13 @@ impl StringRef {
         // test high bit is not set
         (field & 0x8000) == 0
     }
+
+    fn encoding_num_words(&self) -> u8 {
+        match self {
+            StringRef::Ref(_) => 0,
+            StringRef::Inline(s) => ((s.len() + 7) /8) as u8
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

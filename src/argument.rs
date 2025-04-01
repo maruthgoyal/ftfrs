@@ -129,19 +129,15 @@ impl Argument {
     }
 
     fn write_header_and_name<W: Write>(
+        &self,
         writer: &mut W,
-        arg_type: ArgumentType,
-        arg_name: &StringRef,
         data: u32,
-        num_extra_words: u8,
     ) -> Result<()> {
-        let mut num_words = 1 + num_extra_words;
 
-        if let StringRef::Inline(_) = arg_name {
-            num_words += 1;
-        }
-
-        let header = Argument::create_header(arg_type, arg_name, num_words, data);
+        let num_words = self.encoding_num_words();
+        println!("arg {num_words}");
+        let arg_name = self.name();
+        let header = Argument::create_header(self.arg_type(), arg_name, num_words, data);
         writer.write_all(&header.to_ne_bytes())?;
 
         if let StringRef::Inline(s) = arg_name {
@@ -150,6 +146,21 @@ impl Argument {
         }
 
         Ok(())
+    }
+    
+    fn arg_type(&self) -> ArgumentType {
+        match self {
+            Argument::Null(_) => ArgumentType::Null,
+            Argument::Int32(_, _) => ArgumentType::Int32,
+            Argument::UInt32(_, _) => ArgumentType::UInt32,
+            Argument::Int64(_, _) => ArgumentType::Int64,
+            Argument::UInt64(_, _) => ArgumentType::UInt64,
+            Argument::Float(_, _) => ArgumentType::Float,
+            Argument::Pointer(_, _) => ArgumentType::Pointer,
+            Argument::KernelObjectId(_, _) => ArgumentType::KernelObjectId,
+            Argument::Boolean(_, _) => ArgumentType::Boolean,
+            Argument::Str(_, _) => ArgumentType::Str,
+        }
     }
 
     fn name(&self) -> &StringRef {
@@ -169,9 +180,7 @@ impl Argument {
 
     pub(super) fn encoding_num_words(&self) -> u8 {
         let mut num_words = 0;
-        if let StringRef::Inline(_) = self.name() {
-            num_words += 1;
-        }
+        num_words += self.name().encoding_num_words();
 
         num_words += match self {
             Argument::Null(_)
@@ -197,65 +206,50 @@ impl Argument {
 
     pub(super) fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         match self {
-            Argument::Null(name) => {
-                Argument::write_header_and_name(writer, ArgumentType::Null, name, 0, 0)
+            Argument::Null(_) => {
+                self.write_header_and_name(writer, 0)
             }
-            Argument::Int32(name, val) => {
-                Argument::write_header_and_name(writer, ArgumentType::Int32, name, *val as u32, 0)
+            Argument::Int32(_, val) => {
+                self.write_header_and_name(writer, *val as u32)
             }
-            Argument::UInt32(name, val) => {
-                Argument::write_header_and_name(writer, ArgumentType::UInt32, name, *val, 0)
+            Argument::UInt32(_, val) => {
+                self.write_header_and_name(writer, *val)
             }
-            Argument::Int64(name, val) => {
-                Argument::write_header_and_name(writer, ArgumentType::Int64, name, 0, 1)?;
+            Argument::Int64(_, val) => {
+                self.write_header_and_name(writer, 0)?;
                 writer.write_all(&(*val as u64).to_ne_bytes())?;
                 Ok(())
             }
-            Argument::UInt64(name, val) => {
-                Argument::write_header_and_name(writer, ArgumentType::UInt64, name, 0, 1)?;
+            Argument::UInt64(_, val) => {
+                self.write_header_and_name(writer, 0)?;
                 writer.write_all(&(*val).to_ne_bytes())?;
                 Ok(())
             }
-            Argument::Float(name, val) => {
-                Argument::write_header_and_name(writer, ArgumentType::Float, name, 0, 1)?;
+            Argument::Float(_, val) => {
+                self.write_header_and_name(writer, 0)?;
                 writer.write_all(&(val.to_bits()).to_ne_bytes())?;
                 Ok(())
             }
-            Argument::Str(name, val) => {
-                let num_extra_words = if let StringRef::Inline(_) = val { 1 } else { 0 };
-
-                let data = val.to_field() as u32;
-
-                Argument::write_header_and_name(
-                    writer,
-                    ArgumentType::Str,
-                    name,
-                    data,
-                    num_extra_words,
-                )?;
-                if let StringRef::Inline(s) = val {
+            Argument::Str(_, val) => {
+                self.write_header_and_name(writer, val.to_field() as u32)?;
+               if let StringRef::Inline(s) = val {
                     let padded = pad_to_multiple_of_8(s.as_bytes());
                     writer.write_all(&padded)?;
                 }
                 Ok(())
             }
-            Argument::Pointer(name, val) => {
-                Argument::write_header_and_name(writer, ArgumentType::Pointer, name, 0, 1)?;
+            Argument::Pointer(_, val) => {
+                self.write_header_and_name(writer, 0)?;
                 writer.write_all(&(*val).to_ne_bytes())?;
                 Ok(())
             }
-            Argument::KernelObjectId(name, val) => {
-                Argument::write_header_and_name(writer, ArgumentType::KernelObjectId, name, 0, 1)?;
+            Argument::KernelObjectId(_, val) => {
+                self.write_header_and_name(writer, 0)?;
                 writer.write_all(&(*val).to_ne_bytes())?;
                 Ok(())
             }
-            Argument::Boolean(name, val) => Argument::write_header_and_name(
-                writer,
-                ArgumentType::Boolean,
-                name,
-                if *val { 1_u32 } else { 0 },
-                0,
-            ),
+            Argument::Boolean(_, val) => 
+                self.write_header_and_name(writer, if *val { 1 } else { 0 }),
         }
     }
 }

@@ -117,10 +117,14 @@ impl Event {
         if let StringRef::Inline(s) = &self.name {
             num_words += (s.len() + 7) / 8;
         }
+        
+        println!("num words pre-arg {num_words}");
 
         for arg in &self.arguments {
             num_words += arg.encoding_num_words() as usize;
         }
+
+        println!("num words {num_words}");
 
         let header = RecordHeader::build(
             crate::header::RecordType::Event,
