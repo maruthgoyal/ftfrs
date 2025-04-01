@@ -1009,7 +1009,7 @@ mod tests {
         assert_eq!(buffer.len(), 16);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
         let header = RecordHeader {
@@ -1035,7 +1035,7 @@ mod tests {
         assert_eq!(name_ref, 15);
 
         // Verify the timestamp
-        let timestamp = u64::from_le_bytes([
+        let timestamp = u64::from_ne_bytes([
             buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14],
             buffer[15],
         ]);
@@ -1068,7 +1068,7 @@ mod tests {
         assert_eq!(buffer.len(), 24);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
 
@@ -1077,7 +1077,7 @@ mod tests {
         assert_eq!(event_type, 1);
 
         // Verify the counter_id
-        let counter_id = u64::from_le_bytes([
+        let counter_id = u64::from_ne_bytes([
             buffer[16], buffer[17], buffer[18], buffer[19], buffer[20], buffer[21], buffer[22],
             buffer[23],
         ]);
@@ -1107,7 +1107,7 @@ mod tests {
         assert_eq!(buffer.len(), 16);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
 
@@ -1116,7 +1116,7 @@ mod tests {
         assert_eq!(event_type, 2);
 
         // Verify the timestamp
-        let timestamp = u64::from_le_bytes([
+        let timestamp = u64::from_ne_bytes([
             buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14],
             buffer[15],
         ]);
@@ -1146,7 +1146,7 @@ mod tests {
         assert_eq!(buffer.len(), 16);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
 
@@ -1155,7 +1155,7 @@ mod tests {
         assert_eq!(event_type, 3);
 
         // Verify the timestamp
-        let timestamp = u64::from_le_bytes([
+        let timestamp = u64::from_ne_bytes([
             buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14],
             buffer[15],
         ]);
@@ -1188,7 +1188,7 @@ mod tests {
         assert_eq!(buffer.len(), 24);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
 
@@ -1197,7 +1197,7 @@ mod tests {
         assert_eq!(event_type, 4);
 
         // Verify the duration_ticks
-        let duration_ticks = u64::from_le_bytes([
+        let duration_ticks = u64::from_ne_bytes([
             buffer[16], buffer[17], buffer[18], buffer[19], buffer[20], buffer[21], buffer[22],
             buffer[23],
         ]);
@@ -1230,7 +1230,7 @@ mod tests {
         assert_eq!(buffer.len(), 32);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
 
@@ -1239,14 +1239,14 @@ mod tests {
         assert_eq!(thread_ref, 0);
 
         // Verify process ID
-        let process_id = u64::from_le_bytes([
+        let process_id = u64::from_ne_bytes([
             buffer[16], buffer[17], buffer[18], buffer[19], buffer[20], buffer[21], buffer[22],
             buffer[23],
         ]);
         assert_eq!(process_id, 12345);
 
         // Verify thread ID
-        let thread_id = u64::from_le_bytes([
+        let thread_id = u64::from_ne_bytes([
             buffer[24], buffer[25], buffer[26], buffer[27], buffer[28], buffer[29], buffer[30],
             buffer[31],
         ]);
@@ -1276,7 +1276,7 @@ mod tests {
         assert_eq!(buffer.len(), 24);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
 
@@ -1318,7 +1318,7 @@ mod tests {
         assert_eq!(buffer.len(), 24);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
 
@@ -1364,7 +1364,7 @@ mod tests {
         assert_eq!(buffer.len(), 56);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
 
@@ -1382,13 +1382,13 @@ mod tests {
 
         // Extract the strings from buffer
         // First process ID and thread ID
-        let process_id = u64::from_le_bytes([
+        let process_id = u64::from_ne_bytes([
             buffer[16], buffer[17], buffer[18], buffer[19], buffer[20], buffer[21], buffer[22],
             buffer[23],
         ]);
         assert_eq!(process_id, 98765);
 
-        let thread_id = u64::from_le_bytes([
+        let thread_id = u64::from_ne_bytes([
             buffer[24], buffer[25], buffer[26], buffer[27], buffer[28], buffer[29], buffer[30],
             buffer[31],
         ]);

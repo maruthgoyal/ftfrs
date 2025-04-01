@@ -456,7 +456,7 @@ mod tests {
         assert_eq!(buffer.len(), 8);
 
         // Verify the value
-        let value = u64::from_le_bytes([
+        let value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
         assert_eq!(value, MetadataRecord::MAGIC_NUMBER_RECORD);
@@ -482,7 +482,7 @@ mod tests {
         assert_eq!(buffer.len(), 16);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
         let header = RecordHeader {
@@ -514,7 +514,7 @@ mod tests {
         assert_eq!(buffer.len(), 8);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
 
@@ -547,7 +547,7 @@ mod tests {
         assert_eq!(buffer.len(), 8);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
 
@@ -584,7 +584,7 @@ mod tests {
         assert_eq!(buffer.len(), 8);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
 

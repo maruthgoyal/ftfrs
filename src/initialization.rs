@@ -76,7 +76,7 @@ mod tests {
         assert_eq!(buffer.len(), 16); // 8 bytes header + 8 bytes for ticks_per_second
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
         let header = RecordHeader {
@@ -90,7 +90,7 @@ mod tests {
         assert_eq!(header.size() * 8, 16); // 2 words * 8 bytes
 
         // Verify the data
-        let ticks_value = u64::from_le_bytes([
+        let ticks_value = u64::from_ne_bytes([
             buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14],
             buffer[15],
         ]);

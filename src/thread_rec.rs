@@ -116,7 +116,7 @@ mod tests {
         assert_eq!(buffer.len(), 24);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
         let header = RecordHeader {
@@ -131,14 +131,14 @@ mod tests {
         assert_eq!(thread_index, 5);
 
         // Verify the process KOID
-        let process_koid = u64::from_le_bytes([
+        let process_koid = u64::from_ne_bytes([
             buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14],
             buffer[15],
         ]);
         assert_eq!(process_koid, 12345);
 
         // Verify the thread KOID
-        let thread_koid = u64::from_le_bytes([
+        let thread_koid = u64::from_ne_bytes([
             buffer[16], buffer[17], buffer[18], buffer[19], buffer[20], buffer[21], buffer[22],
             buffer[23],
         ]);
@@ -161,14 +161,14 @@ mod tests {
         record.write(&mut buffer)?;
 
         // Verify the process KOID
-        let process_koid = u64::from_le_bytes([
+        let process_koid = u64::from_ne_bytes([
             buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14],
             buffer[15],
         ]);
         assert_eq!(process_koid, u64::MAX - 10);
 
         // Verify the thread KOID
-        let thread_koid = u64::from_le_bytes([
+        let thread_koid = u64::from_ne_bytes([
             buffer[16], buffer[17], buffer[18], buffer[19], buffer[20], buffer[21], buffer[22],
             buffer[23],
         ]);

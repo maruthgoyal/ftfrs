@@ -127,7 +127,7 @@ mod tests {
         assert_eq!(buffer.len(), 24);
 
         // Verify the header
-        let header_value = u64::from_le_bytes([
+        let header_value = u64::from_ne_bytes([
             buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
         ]);
         let header = RecordHeader {
