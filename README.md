@@ -14,6 +14,7 @@ A Rust library for reading and writing [Fuchsia Trace Format (FTF)](https://fuch
   - Thread Records
   - String Records
   - Initialization Records
+- Support for all argument types in events (Int32, UInt32, Int64, UInt64, Float, String, Pointer, KernelObjectId, Boolean, Null)
 - Ergonomic API for creating and manipulating trace records
 
 ## Installation
@@ -145,7 +146,7 @@ let duration_event = Record::create_duration_complete_event(
 ### Creating a Counter Event
 
 ```rust
-use ftfrs::{Record, StringRef, ThreadRef};
+use ftfrs::{Record, StringRef, ThreadRef, Argument};
 
 // Create a counter event
 let counter_event = Record::create_counter_event(
@@ -182,6 +183,64 @@ let event_with_inline = Record::create_instant_event(
 );
 ```
 
+### Adding Arguments to Events
+
+Events can include arguments of various types to include additional data:
+
+```rust
+use ftfrs::{Argument, Record, StringRef, ThreadRef};
+
+// Create a vector of arguments of different types
+let args = vec![
+    // Integer arguments
+    Argument::Int32(StringRef::Inline("count".to_string()), 42),
+    Argument::UInt64(StringRef::Inline("timestamp_ms".to_string()), 1647359412000),
+    
+    // Floating point argument
+    Argument::Float(StringRef::Inline("value".to_string()), 3.14159),
+    
+    // String argument (can use inline or reference strings for both name and value)
+    Argument::Str(
+        StringRef::Inline("message".to_string()),
+        StringRef::Inline("Operation completed successfully".to_string())
+    ),
+    
+    // Boolean argument
+    Argument::Boolean(StringRef::Inline("success".to_string()), true),
+    
+    // Pointer argument (memory address)
+    Argument::Pointer(StringRef::Inline("address".to_string()), 0xDEADBEEF),
+    
+    // Kernel object ID
+    Argument::KernelObjectId(StringRef::Inline("process_koid".to_string()), 0x1234)
+];
+
+// Create an event with arguments
+let event_with_args = Record::create_instant_event(
+    500_000,
+    ThreadRef::Ref(1),
+    StringRef::Inline("app".to_string()),
+    StringRef::Inline("process_data".to_string()),
+    args
+);
+```
+
+Argument names can use string references for efficiency when used repeatedly:
+
+```rust
+// First, create a string record for the argument name
+let string_record = Record::create_string(
+    10, // string index
+    5,  // string length
+    "name".to_string()
+);
+
+// Then use a reference to this string in arguments
+let args = vec![
+    Argument::Int32(StringRef::Ref(10), 42) // Reference to "name" string
+];
+```
+
 ## Example Tool 🛠️
 
 The repository includes an example tool that demonstrates reading and writing trace files.
@@ -206,7 +265,7 @@ The example tool:
 
 The following items are planned for future development:
 
-- 🚧 Argument support for events
+- ✅ Argument support for events (completed!)
 - 🔄 Performance optimizations:
   - Add benchmarks
   - Memory usage improvements (in-memory layout mirroring disk format to reduce memory footprint)

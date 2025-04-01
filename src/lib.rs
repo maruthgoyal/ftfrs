@@ -8,7 +8,8 @@ mod string_rec;
 mod thread_rec;
 mod wordutils;
 
-use crate::argument::Argument;
+pub use crate::argument::Argument;
+
 use argument::ArgumentTypeParseError;
 use event::{EventRecord, EventTypeParseError};
 use header::{RecordHeader, RecordType, RecordTypeParseError};
