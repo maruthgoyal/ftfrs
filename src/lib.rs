@@ -148,8 +148,8 @@ impl Record {
         Self::Initialization(InitializationRecord::new(ticks_per_second))
     }
 
-    pub fn create_string(index: u16, length: u32, value: String) -> Self {
-        Self::String(StringRecord::new(index, length, value))
+    pub fn create_string(index: u16, value: String) -> Self {
+        Self::String(StringRecord::new(index,  value))
     }
 
     pub fn create_thread(index: u8, process_koid: u64, thread_koid: u64) -> Self {
@@ -293,7 +293,7 @@ mod tests {
     }
 
     fn create_string_record() -> Record {
-        Record::create_string(1, 11, "test_string".to_string())
+        Record::create_string(1, "test_string".to_string())
     }
 
     fn create_thread_record() -> Record {

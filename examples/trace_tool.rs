@@ -136,38 +136,32 @@ fn write_sample_trace(file_path: &str) -> Result<()> {
     // Add some string records for reuse
     archive.records.push(Record::create_string(
         1, // index
-        9, // length
         "rendering".to_string(),
     ));
 
     archive.records.push(Record::create_string(
         2, // index
-        8, // length
         "database".to_string(),
     ));
 
     archive.records.push(Record::create_string(
         3, // index
-        7, // length
         "network".to_string(),
     ));
 
     // Add string records for argument names
     archive.records.push(Record::create_string(
         4, // index
-        5, // length
         "count".to_string(),
     ));
 
     archive.records.push(Record::create_string(
         5, // index
-        8, // length
         "duration".to_string(),
     ));
 
     archive.records.push(Record::create_string(
         6, // index
-        4, // length
         "size".to_string(),
     ));
 

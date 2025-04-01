@@ -6,15 +6,13 @@ use std::io::{Read, Write};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StringRecord {
     index: u16,
-    length: u32,
     value: String,
 }
 
 impl StringRecord {
-    pub fn new(index: u16, length: u32, value: String) -> Self {
+    pub fn new(index: u16, value: String) -> Self {
         Self {
             index,
-            length,
             value,
         }
     }
@@ -24,7 +22,7 @@ impl StringRecord {
     }
 
     pub fn length(&self) -> u32 {
-        self.length
+        self.value.len() as u32
     }
 
     pub fn value(&self) -> &String {
@@ -38,7 +36,6 @@ impl StringRecord {
         let value = wordutils::read_aligned_str(reader, length as usize)?;
         Ok(StringRecord {
             index,
-            length,
             value,
         })
     }
@@ -58,7 +55,7 @@ impl StringRecord {
                 CustomField { width: 1, value: 0 },
                 CustomField {
                     width: 15,
-                    value: self.length as u64,
+                    value: str_bytes.len() as u64,
                 },
             ],
         )?;
@@ -104,7 +101,7 @@ mod tests {
         let record = StringRecord::parse(&mut cursor, header)?;
 
         assert_eq!(record.index, 42);
-        assert_eq!(record.length, 11);
+        assert_eq!(record.length(), 11);
         assert_eq!(record.value, "Hello World");
 
         Ok(())
@@ -115,7 +112,6 @@ mod tests {
         // Create a string record
         let record = StringRecord {
             index: 42,
-            length: 11,
             value: "Hello World".to_string(),
         };
 
@@ -160,7 +156,6 @@ mod tests {
         // Test with a string whose length is exactly a multiple of 8
         let record = StringRecord {
             index: 100,
-            length: 8,
             value: "ABCDEFGH".to_string(),
         };
 
@@ -184,7 +179,6 @@ mod tests {
         // Create a string record
         let original_record = StringRecord {
             index: 123,
-            length: 13,
             value: "Test String!!".to_string(),
         };
 
@@ -200,7 +194,7 @@ mod tests {
         match record {
             Record::String(parsed_record) => {
                 assert_eq!(parsed_record.index, original_record.index);
-                assert_eq!(parsed_record.length, original_record.length);
+                assert_eq!(parsed_record.length(), original_record.length());
                 assert_eq!(parsed_record.value, original_record.value);
             }
             _ => panic!("Expected String record, got {:?}", record),
