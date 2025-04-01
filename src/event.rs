@@ -7,7 +7,7 @@ use thiserror::Error;
 use crate::{
     extract_bits,
     wordutils::{read_aligned_str, read_u64_word},
-    Argument, RecordHeader, StringRef, ThreadRef,
+    argument::Argument, RecordHeader, StringRef, ThreadRef,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

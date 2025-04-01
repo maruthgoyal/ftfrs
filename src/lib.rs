@@ -1,12 +1,15 @@
 mod bitutils;
-pub mod event;
+mod event;
 mod header;
 mod initialization;
 mod metadata;
 mod string_rec;
 mod thread_rec;
 mod wordutils;
+mod argument;
 
+use crate::argument::Argument;
+use argument::ArgumentTypeParseError;
 use event::{EventRecord, EventTypeParseError};
 use header::{RecordHeader, RecordType, RecordTypeParseError};
 use initialization::InitializationRecord;
@@ -37,6 +40,9 @@ pub enum FtfError {
 
     #[error("Invalid metadata type: {0}")]
     InvalidMetadataType(#[from] MetadataTypeParseError),
+    
+    #[error("Invalid argument type: {0}")]
+    InvalidArgumentType(#[from] ArgumentTypeParseError),
 
     #[error("Unsupported record type: {0:?}")]
     UnsupportedRecordType(RecordType),
@@ -62,6 +68,11 @@ impl StringRef {
             StringRef::Ref(r) => *r & 0x7FFF,
             StringRef::Inline(s) => (s.len() as u16) | 0x8000,
         }
+    }
+
+    pub fn field_is_ref(field: u16) -> bool {
+        // test high bit is set
+        field & 0x8000 == 0x8000
     }
 }
 
@@ -124,19 +135,6 @@ impl Archive {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Argument {
-    Null,
-    Int32(i32),
-    UInt32(u32),
-    Int64(i64),
-    UInt64(u64),
-    Float(f64),
-    Str,
-    Pointer,
-    KernelObjectId,
-    Boolean(bool),
-}
 
 impl Record {
     pub fn create_initialization(ticks_per_second: u64) -> Self {
