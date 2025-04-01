@@ -20,6 +20,19 @@ pub fn read_aligned_str<U: Read>(reader: &mut U, len: usize) -> Result<String> {
     }
 }
 
+fn get_zero_vec(n: u8) -> &'static [u8] {
+    match n {
+        1 => &[0_u8],
+        2 => &[0_u8; 2],
+        3 => &[0_u8; 3],
+        4 => &[0_u8; 4],
+        5 => &[0_u8; 5],
+        6 => &[0_u8; 6],
+        7 => &[0_u8; 7],
+        _ => unreachable!("Should never request zeros outsidse 1-7 range"),
+    }
+}
+
 pub fn pad_and_write_string<W: Write>(writer: &mut W, input: &str) -> Result<()> {
     let bytes = input.as_bytes();
     writer.write_all(bytes)?;
@@ -27,7 +40,7 @@ pub fn pad_and_write_string<W: Write>(writer: &mut W, input: &str) -> Result<()>
     let remainder = bytes.len() % 8;
     if remainder != 0 {
         let num_zeros = 8 - remainder;
-        let zeros = vec![0_u8; num_zeros];
+        let zeros = get_zero_vec(num_zeros as u8);
         writer.write_all(&zeros)?;
     }
     Ok(())
