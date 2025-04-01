@@ -139,8 +139,8 @@ mod tests {
 
         // Verify the string data
         let mut string_data = Vec::new();
-        for i in 8..24 {
-            string_data.push(buffer[i]);
+        for c in buffer.iter().take(24).skip(8) {
+            string_data.push(*c);
         }
 
         // Extract the string (removing padding)
@@ -148,8 +148,8 @@ mod tests {
         assert_eq!(string, "Hello World");
 
         // Verify padding
-        for i in 11..16 {
-            assert_eq!(string_data[i], 0, "Expected padding byte to be 0");
+        for b in string_data.iter().take(16).skip(11) {
+            assert_eq!(*b, 0, "Expected padding byte to be 0");
         }
 
         Ok(())

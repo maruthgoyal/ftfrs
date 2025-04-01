@@ -1681,7 +1681,7 @@ mod tests {
             arguments: vec![
                 Argument::Int32(StringRef::Ref(0x0042), 42),
                 Argument::UInt64(StringRef::Ref(0x0043), 0xDEADBEEF),
-                Argument::Float(StringRef::Ref(0x0044), 3.14159),
+                Argument::Float(StringRef::Ref(0x0044), 1.2345),
                 Argument::Boolean(StringRef::Ref(0x0045), true),
                 Argument::Str(StringRef::Ref(0x0046), StringRef::Ref(0x0047)),
             ],
@@ -1730,7 +1730,7 @@ mod tests {
                 match &instant.event.arguments[2] {
                     Argument::Float(name, value) => {
                         assert_eq!(*name, StringRef::Ref(0x0044));
-                        assert!((value - 3.14159).abs() < f64::EPSILON);
+                        assert!((value - 1.2345).abs() < f64::EPSILON);
                     }
                     _ => panic!("Expected Float argument"),
                 }
@@ -2100,7 +2100,7 @@ mod tests {
             Argument::UInt32(StringRef::Ref(0x0082), 42),
             Argument::Int64(StringRef::Ref(0x0083), -1234567890),
             Argument::UInt64(StringRef::Ref(0x0084), 1234567890),
-            Argument::Float(StringRef::Ref(0x0085), 3.14159),
+            Argument::Float(StringRef::Ref(0x0085), 1.2345),
             Argument::Str(StringRef::Ref(0x0086), StringRef::Ref(0x0087)),
             Argument::Pointer(StringRef::Ref(0x0088), 0xDEADBEEF),
             Argument::KernelObjectId(StringRef::Ref(0x0089), 0x12345678),
@@ -2184,7 +2184,7 @@ mod tests {
                 match &instant.event.arguments[5] {
                     Argument::Float(name, value) => {
                         assert_eq!(*name, StringRef::Ref(0x0085));
-                        assert!((value - 3.14159).abs() < f64::EPSILON);
+                        assert!((value - 1.2345).abs() < f64::EPSILON);
                     }
                     _ => panic!("Expected Float argument"),
                 }

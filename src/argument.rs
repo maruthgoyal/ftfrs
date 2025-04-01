@@ -516,9 +516,9 @@ mod tests {
 
     #[test]
     fn test_float_argument() -> Result<()> {
-        // Float argument with value 3.14159
+        // Float argument with value 1.2345
         let arg_name = 0x0082; // Reference to string at index 0x82
-        let value: f64 = 3.14159;
+        let value: f64 = 1.2345;
         let header = create_argument_header(5, 2, arg_name, 0); // Size 2 = 16 bytes (header + value)
 
         let mut data = Vec::new();
@@ -531,7 +531,7 @@ mod tests {
         match arg {
             Argument::Float(name, val) => {
                 assert_eq!(name, StringRef::Ref(0x0082));
-                assert!((val - 3.14159).abs() < f64::EPSILON);
+                assert!((val - 1.2345).abs() < f64::EPSILON);
             }
             _ => panic!("Expected Float argument"),
         }
@@ -1124,7 +1124,7 @@ mod tests {
     fn test_write_float_argument() -> Result<()> {
         // Float argument with reference name
         let arg_name_ref = 0x0082;
-        let value: f64 = 3.14159;
+        let value: f64 = 1.2345;
         let arg = Argument::Float(StringRef::Ref(arg_name_ref), value);
 
         let mut buffer = Vec::new();
@@ -1439,8 +1439,8 @@ mod tests {
                 0xFFFFFFFFFFFFFFFF,
             ),
             // Float argument variants
-            Argument::Float(StringRef::Ref(0x6666), 3.14159),
-            Argument::Float(StringRef::Inline("float_name".to_string()), -2.71828),
+            Argument::Float(StringRef::Ref(0x6666), 1.2345),
+            Argument::Float(StringRef::Inline("float_name".to_string()), -3.71828),
             Argument::Float(StringRef::Ref(0x6666), f64::INFINITY),
             Argument::Float(StringRef::Ref(0x6666), f64::NEG_INFINITY),
             Argument::Float(StringRef::Ref(0x6666), 0.0),
