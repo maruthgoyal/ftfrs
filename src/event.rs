@@ -102,7 +102,7 @@ impl Event {
         &self,
         writer: &mut W,
         event_type: EventType,
-        event_extra_words: Vec<u64>,
+        event_extra_word: Option<u64>,
     ) -> Result<()> {
         // header + timestamp always
         let mut num_words = 1 + 1;
@@ -110,21 +110,16 @@ impl Event {
             num_words += 2;
         }
 
-        if let StringRef::Inline(s) = &self.category {
-            num_words += (s.len() + 7) / 8;
-        }
-
-        if let StringRef::Inline(s) = &self.name {
-            num_words += (s.len() + 7) / 8;
-        }
+        num_words += self.category.encoding_num_words();
+        num_words += self.name.encoding_num_words();
 
         for arg in &self.arguments {
-            num_words += arg.encoding_num_words() as usize;
+            num_words += arg.encoding_num_words();
         }
 
         let header = RecordHeader::build(
             crate::header::RecordType::Event,
-            num_words as u8 + event_extra_words.len() as u8,
+            num_words as u8 + event_extra_word.is_some() as u8,
             vec![
                 CustomField {
                     width: 4,
@@ -176,7 +171,7 @@ impl Event {
             arg.write(writer)?;
         }
 
-        for extra in event_extra_words {
+        if let Some(extra) = event_extra_word {
             writer.write_all(&extra.to_le_bytes())?;
         }
 
@@ -208,7 +203,7 @@ impl Instant {
 
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         self.event
-            .write_event(writer, EventType::Instant, Vec::new())
+            .write_event(writer, EventType::Instant, None)
     }
 }
 
@@ -248,7 +243,7 @@ impl Counter {
 
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         self.event
-            .write_event(writer, EventType::Counter, vec![self.counter_id])
+            .write_event(writer, EventType::Counter, Some(self.counter_id))
     }
 }
 
@@ -276,7 +271,7 @@ impl DurationBegin {
 
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         self.event
-            .write_event(writer, EventType::DurationBegin, Vec::new())
+            .write_event(writer, EventType::DurationBegin, None)
     }
 }
 
@@ -304,7 +299,7 @@ impl DurationEnd {
 
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         self.event
-            .write_event(writer, EventType::DurationEnd, Vec::new())
+            .write_event(writer, EventType::DurationEnd, None)
     }
 }
 
@@ -347,7 +342,7 @@ impl DurationComplete {
 
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         self.event
-            .write_event(writer, EventType::DurationComplete, vec![self.end_ts])
+            .write_event(writer, EventType::DurationComplete, Some(self.end_ts))
     }
 }
 
