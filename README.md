@@ -182,6 +182,26 @@ let event_with_inline = Record::create_instant_event(
 );
 ```
 
+## Example Tool 🛠️
+
+The repository includes an example tool that demonstrates reading and writing trace files.
+
+### Running the Example
+
+```bash
+# Create a sample trace file
+cargo run --example trace_tool write [output_file.ftf]
+
+# Read and display a trace file
+cargo run --example trace_tool read <trace_file.ftf>
+```
+
+The example tool:
+- Creates a sample trace with various record types (metadata, events, strings, etc.)
+- Demonstrates string references and inline strings
+- Shows how to read trace files and analyze their contents
+- Provides a practical example of a complete trace structure
+
 ## Roadmap 🚀
 
 The following items are planned for future development:

@@ -2,8 +2,15 @@
 name = "ftfrs"
 version = "0.1.0"
 edition = "2021"
+description = "Read and write Fuchsia Trace Format (FTF) traces with Rust"
+repository = "https://github.com/username/ftfrs"
+license = "MIT"
 
 [dependencies]
 anyhow = "1.0.97"
 log = "0.4.27"
 thiserror = "2.0.12"
+
+[[example]]
+name = "trace_tool"
+path = "examples/trace_tool.rs"
