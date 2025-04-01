@@ -6,6 +6,10 @@ description = "Read and write Fuchsia Trace Format (FTF) traces with Rust"
 repository = "https://github.com/username/ftfrs"
 license = "MIT"
 
+exclude = [
+	".github/*",
+]
+
 [dependencies]
 anyhow = "1.0.97"
 log = "0.4.27"
