@@ -389,7 +389,9 @@ impl EventRecord {
         name: StringOrRef,
         arguments: Vec<Argument>,
     ) -> Self {
-        Self::DurationBegin(DurationBegin::new(timestamp, thread, category, name, arguments))
+        Self::DurationBegin(DurationBegin::new(
+            timestamp, thread, category, name, arguments,
+        ))
     }
 
     pub fn create_duration_end(
@@ -399,7 +401,9 @@ impl EventRecord {
         name: StringOrRef,
         arguments: Vec<Argument>,
     ) -> Self {
-        Self::DurationEnd(DurationEnd::new(timestamp, thread, category, name, arguments))
+        Self::DurationEnd(DurationEnd::new(
+            timestamp, thread, category, name, arguments,
+        ))
     }
 
     pub fn create_duration_complete(

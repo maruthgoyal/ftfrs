@@ -27,7 +27,6 @@ use std::io::{ErrorKind, Read, Write};
 use std::string::FromUtf8Error;
 use thiserror::Error;
 
-/// Custom error type for the FTF parsing library
 #[derive(Error, Debug)]
 pub enum FtfError {
     #[error("I/O error: {0}")]
@@ -55,7 +54,6 @@ pub enum FtfError {
     ParseError(String),
 }
 
-/// Type alias for Result with FtfError
 pub type Result<T> = std::result::Result<T, FtfError>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -179,7 +177,6 @@ impl Record {
         )))
     }
 
-    // TODO: change to [u8; 5]
     pub fn create_trace_info(trace_info_type: u8, data: [u8; 5]) -> Self {
         Self::Metadata(MetadataRecord::TraceInfo(TraceInfo::new(
             trace_info_type,
@@ -190,7 +187,7 @@ impl Record {
     pub fn create_magic_number() -> Self {
         Self::Metadata(MetadataRecord::MagicNumber)
     }
-    
+
     pub fn create_instant_event(
         timestamp: u64,
         thread: ThreadOrRef,
@@ -198,7 +195,9 @@ impl Record {
         name: StringOrRef,
         arguments: Vec<Argument>,
     ) -> Self {
-        Self::Event(EventRecord::create_instant(timestamp, thread, category, name, arguments))
+        Self::Event(EventRecord::create_instant(
+            timestamp, thread, category, name, arguments,
+        ))
     }
 
     pub fn create_counter_event(
@@ -209,7 +208,9 @@ impl Record {
         arguments: Vec<Argument>,
         counter_id: u64,
     ) -> Self {
-        Self::Event(EventRecord::create_counter(timestamp, thread, category, name, arguments, counter_id))
+        Self::Event(EventRecord::create_counter(
+            timestamp, thread, category, name, arguments, counter_id,
+        ))
     }
 
     pub fn create_duration_begin_event(
@@ -219,7 +220,9 @@ impl Record {
         name: StringOrRef,
         arguments: Vec<Argument>,
     ) -> Self {
-        Self::Event(EventRecord::create_duration_begin(timestamp, thread, category, name, arguments))
+        Self::Event(EventRecord::create_duration_begin(
+            timestamp, thread, category, name, arguments,
+        ))
     }
 
     pub fn create_duration_end_event(
@@ -229,7 +232,9 @@ impl Record {
         name: StringOrRef,
         arguments: Vec<Argument>,
     ) -> Self {
-        Self::Event(EventRecord::create_duration_end(timestamp, thread, category, name, arguments))
+        Self::Event(EventRecord::create_duration_end(
+            timestamp, thread, category, name, arguments,
+        ))
     }
 
     pub fn create_duration_complete_event(
@@ -240,7 +245,9 @@ impl Record {
         arguments: Vec<Argument>,
         end_ts: u64,
     ) -> Self {
-        Self::Event(EventRecord::create_duration_complete(timestamp, thread, category, name, arguments, end_ts))
+        Self::Event(EventRecord::create_duration_complete(
+            timestamp, thread, category, name, arguments, end_ts,
+        ))
     }
 
     pub fn from_bytes<U: Read>(reader: &mut U) -> Result<Record> {
