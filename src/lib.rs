@@ -1,3 +1,4 @@
+mod argument;
 mod bitutils;
 mod event;
 mod header;
@@ -6,7 +7,6 @@ mod metadata;
 mod string_rec;
 mod thread_rec;
 mod wordutils;
-mod argument;
 
 use crate::argument::Argument;
 use argument::ArgumentTypeParseError;
@@ -40,7 +40,7 @@ pub enum FtfError {
 
     #[error("Invalid metadata type: {0}")]
     InvalidMetadataType(#[from] MetadataTypeParseError),
-    
+
     #[error("Invalid argument type: {0}")]
     InvalidArgumentType(#[from] ArgumentTypeParseError),
 
@@ -134,7 +134,6 @@ impl Archive {
         Ok(())
     }
 }
-
 
 impl Record {
     pub fn create_initialization(ticks_per_second: u64) -> Self {

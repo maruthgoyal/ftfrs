@@ -5,9 +5,10 @@ use std::io::{Read, Write};
 use thiserror::Error;
 
 use crate::{
+    argument::Argument,
     extract_bits,
     wordutils::{read_aligned_str, read_u64_word},
-    argument::Argument, RecordHeader, StringRef, ThreadRef,
+    RecordHeader, StringRef, ThreadRef,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

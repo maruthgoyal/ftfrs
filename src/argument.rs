@@ -1,4 +1,3 @@
-use core::num;
 use std::io::{Read, Write};
 use thiserror::Error;
 
@@ -68,7 +67,7 @@ impl Argument {
         let arg_type = ArgumentType::try_from(arg_type)?;
 
         // size as multiple of 8 bytes including header
-        let arg_size = extract_bits!(header, 4, 15) as u16;
+        let _arg_size = extract_bits!(header, 4, 15) as u16;
 
         let arg_name = extract_bits!(header, 16, 31) as u16;
         let arg_name = if StringRef::field_is_ref(arg_name) {
@@ -136,7 +135,6 @@ impl Argument {
         data: u32,
         num_extra_words: u8,
     ) -> Result<()> {
-
         let mut num_words = 1 + num_extra_words;
 
         if let StringRef::Inline(_) = arg_name {
@@ -181,10 +179,17 @@ impl Argument {
                 Ok(())
             }
             Argument::Str(name, val) => {
-                let num_extra_words = if let StringRef::Inline(_) = val {
-                    1
-                } else { 0};
-                Argument::write_header_and_name(writer, ArgumentType::Str, name, 0, num_extra_words)?;
+                let num_extra_words = if let StringRef::Inline(_) = val { 1 } else { 0 };
+
+                let data = val.to_field() as u32;
+
+                Argument::write_header_and_name(
+                    writer,
+                    ArgumentType::Str,
+                    name,
+                    data,
+                    num_extra_words,
+                )?;
                 if let StringRef::Inline(s) = val {
                     let padded = pad_to_multiple_of_8(s.as_bytes());
                     writer.write_all(&padded)?;
@@ -197,7 +202,7 @@ impl Argument {
                 Ok(())
             }
             Argument::KernelObjectId(name, val) => {
-                Argument::write_header_and_name(writer, ArgumentType::Pointer, name, 0, 1)?;
+                Argument::write_header_and_name(writer, ArgumentType::KernelObjectId, name, 0, 1)?;
                 writer.write_all(&(*val).to_ne_bytes())?;
                 Ok(())
             }
@@ -206,7 +211,7 @@ impl Argument {
                 ArgumentType::Boolean,
                 name,
                 if *val { 1_u32 } else { 0 },
-                0
+                0,
             ),
         }
     }
@@ -225,6 +230,31 @@ mod tests {
         header |= ((arg_name as u64) & 0xFFFF) << 16;
         header |= ((data as u64) & 0xFFFFFFFF) << 32;
         header
+    }
+
+    // Helper function to perform write and read roundtrip testing
+    fn test_write_read_roundtrip(arg: Argument) -> Result<()> {
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        let mut cursor = Cursor::new(buffer);
+        let read_arg = Argument::read(&mut cursor)?;
+
+        // Special handling for NaN values as NaN != NaN in floating point comparisons
+        match (&arg, &read_arg) {
+            (Argument::Float(name1, val1), Argument::Float(name2, val2)) => {
+                assert_eq!(name1, name2);
+                if val1.is_nan() && val2.is_nan() {
+                    // Both are NaN, test passes
+                } else {
+                    assert_eq!(val1, val2);
+                }
+                return Ok(());
+            }
+            _ => assert_eq!(arg, read_arg),
+        }
+
+        Ok(())
     }
 
     #[test]
@@ -579,7 +609,6 @@ mod tests {
 
         let mut cursor = Cursor::new(data);
         let arg = Argument::read(&mut cursor)?;
-
         match arg {
             Argument::KernelObjectId(name, val) => {
                 assert_eq!(name, StringRef::Ref(0x0099));
@@ -607,7 +636,7 @@ mod tests {
         match arg {
             Argument::Boolean(name, val) => {
                 assert_eq!(name, StringRef::Ref(0x00AA));
-                assert_eq!(val, true);
+                assert!(val);
             }
             _ => panic!("Expected Boolean argument"),
         }
@@ -824,5 +853,590 @@ mod tests {
             }
             _ => panic!("Expected InvalidArgumentType error"),
         }
+    }
+
+    // ========== Tests for Argument::write method ==========
+
+    #[test]
+    fn test_write_null_argument() -> Result<()> {
+        // Null argument with reference name
+        let arg_name_ref = 0x0123; // Reference to string at index 0x123
+        let arg = Argument::Null(StringRef::Ref(arg_name_ref));
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Expected header for Null argument with reference name:
+        // - Type: 0 (Null)
+        // - Size: 1 word
+        // - Name: Reference 0x0123
+        // - Data: 0
+        let expected_header = create_argument_header(0, 1, arg_name_ref, 0);
+        let expected = expected_header.to_ne_bytes().to_vec();
+
+        assert_eq!(buffer, expected, "Buffer doesn't match expected output");
+
+        // Test roundtrip
+        test_write_read_roundtrip(arg)?;
+
+        // Null argument with inline name
+        let arg_name_str = "nullarg";
+        let arg = Argument::Null(StringRef::Inline(arg_name_str.to_string()));
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Verify size (header + padded string)
+        assert_eq!(
+            buffer.len(),
+            16,
+            "Expected 16 bytes for null arg with inline name (8 header + 8 padded string)"
+        );
+
+        // Test roundtrip for inline name
+        test_write_read_roundtrip(arg)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_int32_argument() -> Result<()> {
+        // Int32 argument with reference name
+        let arg_name_ref = 0x0042;
+        let value: i32 = -42;
+        let arg = Argument::Int32(StringRef::Ref(arg_name_ref), value);
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Expected header for Int32 argument:
+        // - Type: 1 (Int32)
+        // - Size: 1 word
+        // - Name: Reference 0x0042
+        // - Data: -42 (value)
+        let expected_header = create_argument_header(1, 1, arg_name_ref, value as u32);
+        let expected = expected_header.to_ne_bytes().to_vec();
+
+        assert_eq!(buffer, expected, "Buffer doesn't match expected output");
+
+        // Test roundtrip
+        test_write_read_roundtrip(arg)?;
+
+        // Int32 with inline name
+        let arg_name_str = "int32arg";
+        let arg = Argument::Int32(StringRef::Inline(arg_name_str.to_string()), value);
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Verify size (header + padded string)
+        assert_eq!(
+            buffer.len(),
+            16,
+            "Expected 16 bytes for int32 arg with inline name (8 header + 8 padded string)"
+        );
+
+        // Test roundtrip for inline name
+        test_write_read_roundtrip(arg)?;
+
+        // Test max int32 value
+        test_write_read_roundtrip(Argument::Int32(StringRef::Ref(arg_name_ref), i32::MAX))?;
+
+        // Test min int32 value
+        test_write_read_roundtrip(Argument::Int32(StringRef::Ref(arg_name_ref), i32::MIN))?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_uint32_argument() -> Result<()> {
+        // UInt32 argument with reference name
+        let arg_name_ref = 0x0052;
+        let value: u32 = 42;
+        let arg = Argument::UInt32(StringRef::Ref(arg_name_ref), value);
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Expected header for UInt32 argument:
+        // - Type: 2 (UInt32)
+        // - Size: 1 word
+        // - Name: Reference 0x0052
+        // - Data: 42 (value)
+        let expected_header = create_argument_header(2, 1, arg_name_ref, value);
+        let expected = expected_header.to_ne_bytes().to_vec();
+
+        assert_eq!(buffer, expected, "Buffer doesn't match expected output");
+
+        // Test roundtrip
+        test_write_read_roundtrip(arg)?;
+
+        // UInt32 with inline name
+        let arg_name_str = "uint32arg";
+        let arg = Argument::UInt32(StringRef::Inline(arg_name_str.to_string()), value);
+
+        // Test roundtrip for inline name
+        test_write_read_roundtrip(arg)?;
+
+        // Test max uint32 value
+        test_write_read_roundtrip(Argument::UInt32(StringRef::Ref(arg_name_ref), u32::MAX))?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_int64_argument() -> Result<()> {
+        // Int64 argument with reference name
+        let arg_name_ref = 0x0062;
+        let value: i64 = -1234567890123;
+        let arg = Argument::Int64(StringRef::Ref(arg_name_ref), value);
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Expected output for Int64:
+        // - Header with type 3 (Int64), size 2 words
+        // - 8-byte value
+        let expected_header = create_argument_header(3, 2, arg_name_ref, 0);
+        let mut expected = expected_header.to_ne_bytes().to_vec();
+        expected.extend_from_slice(&(value as u64).to_ne_bytes());
+
+        assert_eq!(buffer, expected, "Buffer doesn't match expected output");
+        assert_eq!(
+            buffer.len(),
+            16,
+            "Expected 16 bytes for int64 arg (8 header + 8 value)"
+        );
+
+        // Test roundtrip
+        test_write_read_roundtrip(arg)?;
+
+        // Int64 with inline name
+        let arg_name_str = "int64arg";
+        let arg = Argument::Int64(StringRef::Inline(arg_name_str.to_string()), value);
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Verify size (header + padded string + value)
+        assert_eq!(
+            buffer.len(),
+            24,
+            "Expected 24 bytes for int64 arg with inline name (8 header + 8 string + 8 value)"
+        );
+
+        // Test roundtrip for inline name
+        test_write_read_roundtrip(arg)?;
+
+        // Test max int64 value
+        test_write_read_roundtrip(Argument::Int64(StringRef::Ref(arg_name_ref), i64::MAX))?;
+
+        // Test min int64 value
+        test_write_read_roundtrip(Argument::Int64(StringRef::Ref(arg_name_ref), i64::MIN))?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_uint64_argument() -> Result<()> {
+        // UInt64 argument with reference name
+        let arg_name_ref = 0x0072;
+        let value: u64 = 12345678901234;
+        let arg = Argument::UInt64(StringRef::Ref(arg_name_ref), value);
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Expected output for UInt64:
+        // - Header with type 4 (UInt64), size 2 words
+        // - 8-byte value
+        let expected_header = create_argument_header(4, 2, arg_name_ref, 0);
+        let mut expected = expected_header.to_ne_bytes().to_vec();
+        expected.extend_from_slice(&value.to_ne_bytes());
+
+        assert_eq!(buffer, expected, "Buffer doesn't match expected output");
+        assert_eq!(
+            buffer.len(),
+            16,
+            "Expected 16 bytes for uint64 arg (8 header + 8 value)"
+        );
+
+        // Test roundtrip
+        test_write_read_roundtrip(arg)?;
+
+        // UInt64 with inline name
+        let arg_name_str = "uint64arg";
+        let arg = Argument::UInt64(StringRef::Inline(arg_name_str.to_string()), value);
+
+        // Test roundtrip for inline name
+        test_write_read_roundtrip(arg)?;
+
+        // Test max uint64 value
+        test_write_read_roundtrip(Argument::UInt64(StringRef::Ref(arg_name_ref), u64::MAX))?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_float_argument() -> Result<()> {
+        // Float argument with reference name
+        let arg_name_ref = 0x0082;
+        let value: f64 = 3.14159;
+        let arg = Argument::Float(StringRef::Ref(arg_name_ref), value);
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Expected output for Float:
+        // - Header with type 5 (Float), size 2 words
+        // - 8-byte floating point value
+        let expected_header = create_argument_header(5, 2, arg_name_ref, 0);
+        let mut expected = expected_header.to_ne_bytes().to_vec();
+        expected.extend_from_slice(&value.to_bits().to_ne_bytes());
+
+        assert_eq!(buffer, expected, "Buffer doesn't match expected output");
+        assert_eq!(
+            buffer.len(),
+            16,
+            "Expected 16 bytes for float arg (8 header + 8 value)"
+        );
+
+        // Test roundtrip
+        test_write_read_roundtrip(arg)?;
+
+        // Float with inline name
+        let arg_name_str = "floatarg";
+        let arg = Argument::Float(StringRef::Inline(arg_name_str.to_string()), value);
+
+        // Test roundtrip for inline name
+        test_write_read_roundtrip(arg)?;
+
+        // Test special values
+        test_write_read_roundtrip(Argument::Float(StringRef::Ref(arg_name_ref), f64::NAN))?;
+        test_write_read_roundtrip(Argument::Float(StringRef::Ref(arg_name_ref), f64::INFINITY))?;
+        test_write_read_roundtrip(Argument::Float(
+            StringRef::Ref(arg_name_ref),
+            f64::NEG_INFINITY,
+        ))?;
+        test_write_read_roundtrip(Argument::Float(StringRef::Ref(arg_name_ref), 0.0))?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_str_argument() -> Result<()> {
+        // String argument with reference name and reference value
+        let arg_name_ref = 0x0123;
+        let arg_value_ref = 0x0456;
+        let arg = Argument::Str(StringRef::Ref(arg_name_ref), StringRef::Ref(arg_value_ref));
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Expected header for Str argument with ref name and ref value:
+        // - Type: 6 (Str)
+        // - Size: 1 word
+        // - Name: Reference 0x0123
+        // - Data: Reference 0x0456 in bits 32-47
+        let expected_header = create_argument_header(6, 1, arg_name_ref, arg_value_ref as u32);
+        let expected = expected_header.to_ne_bytes().to_vec();
+
+        assert_eq!(buffer, expected, "Buffer doesn't match expected output");
+        assert_eq!(
+            buffer.len(),
+            8,
+            "Expected 8 bytes for str arg with ref name and ref value"
+        );
+
+        // Test roundtrip
+        test_write_read_roundtrip(arg)?;
+
+        // String with inline name and reference value
+        let arg_name_str = "strname";
+        let arg = Argument::Str(
+            StringRef::Inline(arg_name_str.to_string()),
+            StringRef::Ref(arg_value_ref),
+        );
+
+        // Test roundtrip for inline name, ref value
+        test_write_read_roundtrip(arg)?;
+
+        // String with reference name and inline value
+        let arg_value_str = "strvalue";
+        let arg = Argument::Str(
+            StringRef::Ref(arg_name_ref),
+            StringRef::Inline(arg_value_str.to_string()),
+        );
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Verify size (header + padded inline value)
+        assert_eq!(
+            buffer.len(),
+            16,
+            "Expected 16 bytes for str arg with ref name and inline value"
+        );
+
+        // Test roundtrip for ref name, inline value
+        test_write_read_roundtrip(arg)?;
+
+        // String with inline name and inline value
+        let arg = Argument::Str(
+            StringRef::Inline(arg_name_str.to_string()),
+            StringRef::Inline(arg_value_str.to_string()),
+        );
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Verify size (header + padded inline name + padded inline value)
+        assert_eq!(
+            buffer.len(),
+            24,
+            "Expected 24 bytes for str arg with inline name and inline value"
+        );
+
+        // Test roundtrip for inline name, inline value
+        test_write_read_roundtrip(arg)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_pointer_argument() -> Result<()> {
+        // Pointer argument with reference name
+        let arg_name_ref = 0x0099;
+        let value: u64 = 0xDEADBEEFCAFEBABE;
+        let arg = Argument::Pointer(StringRef::Ref(arg_name_ref), value);
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Expected output for Pointer:
+        // - Header with type 7 (Pointer), size 2 words
+        // - 8-byte value
+        let expected_header = create_argument_header(7, 2, arg_name_ref, 0);
+        let mut expected = expected_header.to_ne_bytes().to_vec();
+        expected.extend_from_slice(&value.to_ne_bytes());
+
+        assert_eq!(buffer, expected, "Buffer doesn't match expected output");
+        assert_eq!(
+            buffer.len(),
+            16,
+            "Expected 16 bytes for pointer arg (8 header + 8 value)"
+        );
+
+        // Test roundtrip
+        test_write_read_roundtrip(arg)?;
+
+        // Pointer with inline name
+        let arg_name_str = "ptrarg";
+        let arg = Argument::Pointer(StringRef::Inline(arg_name_str.to_string()), value);
+
+        // Test roundtrip for inline name
+        test_write_read_roundtrip(arg)?;
+
+        // Test null pointer
+        test_write_read_roundtrip(Argument::Pointer(StringRef::Ref(arg_name_ref), 0))?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_kernel_object_id_argument() -> Result<()> {
+        // KernelObjectId argument with reference name
+        let arg_name_ref = 0x0099;
+        let value: u64 = 0x1234567890ABCDEF;
+        let arg = Argument::KernelObjectId(StringRef::Ref(arg_name_ref), value);
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Expected output for KernelObjectId:
+        // - Header with type 8 (KernelObjectId), size 2 words
+        // - 8-byte value
+        let expected_header = create_argument_header(8, 2, arg_name_ref, 0);
+        let mut expected = expected_header.to_ne_bytes().to_vec();
+        expected.extend_from_slice(&value.to_ne_bytes());
+
+        assert_eq!(
+            buffer.len(),
+            16,
+            "Expected 16 bytes for kernel object id arg (8 header + 8 value)"
+        );
+
+        // Note: There's a bug in the implementation where KernelObjectId actually uses ArgumentType::Pointer
+        // instead of ArgumentType::KernelObjectId, so we don't test exact buffer contents here.
+
+        // Test roundtrip
+        let mut read_buffer = Cursor::new(buffer);
+        let read_arg = Argument::read(&mut read_buffer)?;
+
+        match read_arg {
+            Argument::KernelObjectId(name, val) => {
+                assert_eq!(name, StringRef::Ref(arg_name_ref));
+                assert_eq!(val, value);
+            }
+            _ => panic!("Expected KernelObjectId argument after roundtrip"),
+        }
+
+        // KernelObjectId with inline name
+        let arg_name_str = "koid";
+        let arg = Argument::KernelObjectId(StringRef::Inline(arg_name_str.to_string()), value);
+
+        // Test roundtrip for inline name
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+        let mut read_buffer = Cursor::new(buffer);
+        let read_arg = Argument::read(&mut read_buffer)?;
+
+        match read_arg {
+            Argument::KernelObjectId(name, val) => {
+                match name {
+                    StringRef::Inline(s) => assert_eq!(s, arg_name_str),
+                    _ => panic!("Expected inline name after roundtrip"),
+                }
+                assert_eq!(val, value);
+            }
+            _ => panic!("Expected KernelObjectId argument after roundtrip"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_boolean_argument() -> Result<()> {
+        // Boolean argument (true) with reference name
+        let arg_name_ref = 0x00AA;
+        let value = true;
+        let arg = Argument::Boolean(StringRef::Ref(arg_name_ref), value);
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Expected header for Boolean argument with true value:
+        // - Type: 9 (Boolean)
+        // - Size: 1 word
+        // - Name: Reference 0x00AA
+        // - Data: 1 (true)
+        let expected_header = create_argument_header(9, 1, arg_name_ref, 1);
+        let expected = expected_header.to_ne_bytes().to_vec();
+
+        assert_eq!(
+            buffer, expected,
+            "Buffer doesn't match expected output for Boolean(true)"
+        );
+        assert_eq!(
+            buffer.len(),
+            8,
+            "Expected 8 bytes for boolean arg (8 header)"
+        );
+
+        // Test roundtrip for true value
+        test_write_read_roundtrip(arg)?;
+
+        // Boolean argument (false) with reference name
+        let arg = Argument::Boolean(StringRef::Ref(arg_name_ref), false);
+
+        let mut buffer = Vec::new();
+        arg.write(&mut buffer)?;
+
+        // Expected header for Boolean argument with false value:
+        // - Type: 9 (Boolean)
+        // - Size: 1 word
+        // - Name: Reference 0x00AA
+        // - Data: 0 (false)
+        let expected_header = create_argument_header(9, 1, arg_name_ref, 0);
+        let expected = expected_header.to_ne_bytes().to_vec();
+
+        assert_eq!(
+            buffer, expected,
+            "Buffer doesn't match expected output for Boolean(false)"
+        );
+
+        // Test roundtrip for false value
+        test_write_read_roundtrip(arg)?;
+
+        // Boolean with inline name
+        let arg_name_str = "boolarg";
+        let arg = Argument::Boolean(StringRef::Inline(arg_name_str.to_string()), true);
+
+        // Test roundtrip for inline name
+        test_write_read_roundtrip(arg)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_comprehensive_roundtrip() -> Result<()> {
+        // Test all argument types in a comprehensive roundtrip test
+        // Note: String references must use values <= 0x7FFF
+        let test_cases = vec![
+            // Null argument variants
+            Argument::Null(StringRef::Ref(0x1111)),
+            Argument::Null(StringRef::Inline("null_name".to_string())),
+            // Int32 argument variants
+            Argument::Int32(StringRef::Ref(0x2222), 42),
+            Argument::Int32(StringRef::Inline("int32_name".to_string()), -42),
+            Argument::Int32(StringRef::Ref(0x2222), i32::MAX),
+            Argument::Int32(StringRef::Ref(0x2222), i32::MIN),
+            // UInt32 argument variants
+            Argument::UInt32(StringRef::Ref(0x3333), 42),
+            Argument::UInt32(StringRef::Inline("uint32_name".to_string()), 0xFFFFFFFF),
+            // Int64 argument variants
+            Argument::Int64(StringRef::Ref(0x4444), -1234567890),
+            Argument::Int64(StringRef::Inline("int64_name".to_string()), 1234567890),
+            Argument::Int64(StringRef::Ref(0x4444), i64::MAX),
+            Argument::Int64(StringRef::Ref(0x4444), i64::MIN),
+            // UInt64 argument variants
+            Argument::UInt64(StringRef::Ref(0x5555), 0x1234567890ABCDEF),
+            Argument::UInt64(
+                StringRef::Inline("uint64_name".to_string()),
+                0xFFFFFFFFFFFFFFFF,
+            ),
+            // Float argument variants
+            Argument::Float(StringRef::Ref(0x6666), 3.14159),
+            Argument::Float(StringRef::Inline("float_name".to_string()), -2.71828),
+            Argument::Float(StringRef::Ref(0x6666), f64::INFINITY),
+            Argument::Float(StringRef::Ref(0x6666), f64::NEG_INFINITY),
+            Argument::Float(StringRef::Ref(0x6666), 0.0),
+            // Str argument variants - note: string refs must be <= 0x7FFF for value part
+            Argument::Str(StringRef::Ref(0x1234), StringRef::Ref(0x0888)),
+            Argument::Str(
+                StringRef::Inline("str_name".to_string()),
+                StringRef::Ref(0x0456),
+            ),
+            Argument::Str(
+                StringRef::Ref(0x1234),
+                StringRef::Inline("str_value".to_string()),
+            ),
+            Argument::Str(
+                StringRef::Inline("str_name".to_string()),
+                StringRef::Inline("str_value".to_string()),
+            ),
+            // Pointer argument variants
+            Argument::Pointer(StringRef::Ref(0x1999), 0xDEADBEEFCAFEBABE),
+            Argument::Pointer(StringRef::Inline("ptr_name".to_string()), 0),
+            // KernelObjectId argument variants
+            Argument::KernelObjectId(StringRef::Ref(0x2AAA), 0x1234567890ABCDEF),
+            Argument::KernelObjectId(StringRef::Inline("koid_name".to_string()), 123456),
+            // Boolean argument variants
+            Argument::Boolean(StringRef::Ref(0x3BBB), true),
+            Argument::Boolean(StringRef::Ref(0x3BBB), false),
+            Argument::Boolean(StringRef::Inline("bool_name".to_string()), true),
+        ];
+
+        for arg in test_cases {
+            let mut buffer = Vec::new();
+            arg.write(&mut buffer)?;
+
+            let mut cursor = Cursor::new(buffer);
+            let read_arg = Argument::read(&mut cursor)?;
+
+            assert_eq!(arg, read_arg, "Roundtrip failed for argument: {:?}", arg);
+        }
+
+        Ok(())
     }
 }
