@@ -130,7 +130,6 @@ impl Argument {
 
     fn write_header_and_name<W: Write>(&self, writer: &mut W, data: u32) -> Result<()> {
         let num_words = self.encoding_num_words();
-        println!("arg {num_words}");
         let arg_name = self.name();
         let header = Argument::create_header(self.arg_type(), arg_name, num_words, data);
         writer.write_all(&header.to_ne_bytes())?;
