@@ -152,6 +152,49 @@ impl Argument {
         Ok(())
     }
 
+    fn name(&self) -> &StringRef {
+        match self {
+            Argument::Null(s) => s,
+            Argument::Int32(s, _) => s,
+            Argument::UInt32(s, _) => s,
+            Argument::Int64(s, _) => s,
+            Argument::UInt64(s, _) => s,
+            Argument::Float(s, _) => s,
+            Argument::Pointer(s, _) => s,
+            Argument::KernelObjectId(s, _) => s,
+            Argument::Boolean(s, _) => s,
+            Argument::Str(s, _) => s,
+        }
+    }
+
+    pub(super) fn encoding_num_words(&self) -> u8 {
+        let mut num_words = 0;
+        if let StringRef::Inline(_) = self.name() {
+            num_words += 1;
+        }
+
+        num_words += match self {
+            Argument::Null(_)
+            | Argument::Int32(_, _)
+            | Argument::UInt32(_, _)
+            | Argument::Boolean(_, _) => 1,
+            Argument::Int64(_, _)
+            | Argument::UInt64(_, _)
+            | Argument::Pointer(_, _)
+            | Argument::KernelObjectId(_, _)
+            | Argument::Float(_, _) => 2,
+            Argument::Str(_, s) => {
+                if let StringRef::Inline(_) = s {
+                    2
+                } else {
+                    1
+                }
+            }
+        };
+
+        num_words
+    }
+
     pub(super) fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         match self {
             Argument::Null(name) => {
@@ -652,7 +695,7 @@ mod tests {
         let arg = Argument::read(&mut cursor)?;
 
         match arg {
-            Argument::Boolean(_, val) => assert_eq!(val, false),
+            Argument::Boolean(_, val) => assert!(!val),
             _ => panic!("Expected Boolean argument"),
         }
 

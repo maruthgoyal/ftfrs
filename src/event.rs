@@ -118,8 +118,8 @@ impl Event {
             num_words += (s.len() + 7) / 8;
         }
 
-        if !self.arguments.is_empty() {
-            todo!("Implement arguments support");
+        for arg in &self.arguments {
+            num_words += arg.encoding_num_words() as usize;
         }
 
         let header = RecordHeader::build(
@@ -172,6 +172,9 @@ impl Event {
         }
 
         // arguments should go here
+        for arg in &self.arguments {
+            arg.write(writer)?;
+        }
 
         for extra in event_extra_words {
             writer.write_all(&extra.to_le_bytes())?;
@@ -491,11 +494,17 @@ impl EventRecord {
             StringRef::Inline(n)
         };
 
-        if n_args > 0 {
-            return Err(FtfError::Unimplemented(
-                "Argument parsing not implemented yet".to_string(),
-            ));
+        let mut arguments = Vec::with_capacity(n_args as usize);
+        for _ in 0..n_args {
+            let arg = Argument::read(reader)?;
+            arguments.push(arg);
         }
+
+        // if n_args > 0 {
+        //     return Err(FtfError::Unimplemented(
+        //         "Argument parsing not implemented yet".to_string(),
+        //     ));
+        // }
 
         Ok((
             event_type,
@@ -504,7 +513,7 @@ impl EventRecord {
                 thread,
                 category,
                 name,
-                arguments: Vec::new(),
+                arguments,
             },
         ))
     }
@@ -1584,6 +1593,1052 @@ mod tests {
                 assert!(instant.event.arguments.is_empty());
             }
             _ => panic!("Expected Instant event record, got {:?}", record),
+        }
+
+        Ok(())
+    }
+
+    // Tests for argument functionality in events
+
+    #[test]
+    fn test_event_with_single_argument() -> Result<()> {
+        // Create header with:
+        // - Record type: Event (bits 0-3 = 4)
+        // - Size: 7 (bits 4-15) - 7 * 8 = 56 bytes
+        // - Event type: Instant (bits 16-19 = 0)
+        // - Number of arguments: 1 (bits 20-23 = 1)
+        // - Thread ref: 5 (bits 24-31 = 5)
+        // - Category ref: 10 (bits 32-47 = 10)
+        // - Name ref: 15 (bits 48-63 = 15)
+
+        let header_value: u64 = 0
+            | (15 << 48)   // Name ref
+            | (10 << 32)   // Category ref
+            | (5 << 24)    // Thread ref
+            | (1 << 20)    // Number of arguments: 1
+            | (0 << 16)    // Event type: Instant
+            | (7 << 4)     // Size (7 * 8 = 56 bytes)
+            | 4; // Record type: Event
+
+        let header = RecordHeader {
+            value: header_value,
+        };
+
+        // Create test data
+        let timestamp: u64 = 1000000;
+
+        // Create an Int32 argument
+        // Argument header with:
+        // - Type: Int32 (1)
+        // - Size: 1 (1 * 8 = 8 bytes)
+        // - Name ref: 0x0042
+        // - Value: 42
+        let arg_name = 0x0042;
+        let arg_value: i32 = 42;
+        let arg_header = ((arg_value as u64) << 32) | ((arg_name as u64) << 16) | (1 << 4) | 1;
+
+        let mut data = Vec::new();
+        data.extend_from_slice(&timestamp.to_le_bytes());
+        data.extend_from_slice(&arg_header.to_le_bytes());
+
+        let mut cursor = Cursor::new(data);
+
+        // Parse the event record
+        let record = EventRecord::parse(&mut cursor, header)?;
+
+        // Verify the record is an Instant event with expected argument
+        match record {
+            EventRecord::Instant(instant) => {
+                assert_eq!(instant.event.timestamp, 1000000);
+                assert_eq!(instant.event.thread, ThreadRef::Ref(5));
+                assert_eq!(instant.event.category, StringRef::Ref(10));
+                assert_eq!(instant.event.name, StringRef::Ref(15));
+
+                // Verify argument
+                assert_eq!(instant.event.arguments.len(), 1);
+                match &instant.event.arguments[0] {
+                    Argument::Int32(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0042));
+                        assert_eq!(*value, 42);
+                    }
+                    _ => panic!("Expected Int32 argument"),
+                }
+            }
+            _ => panic!("Expected Instant event record"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_event_with_multiple_arguments() -> Result<()> {
+        // Create an event with multiple arguments of different types
+        let event = Event {
+            timestamp: 1000000,
+            thread: ThreadRef::Ref(5),
+            category: StringRef::Ref(10),
+            name: StringRef::Ref(15),
+            arguments: vec![
+                Argument::Int32(StringRef::Ref(0x0042), 42),
+                Argument::UInt64(StringRef::Ref(0x0043), 0xDEADBEEF),
+                Argument::Float(StringRef::Ref(0x0044), 3.14159),
+                Argument::Boolean(StringRef::Ref(0x0045), true),
+                Argument::Str(StringRef::Ref(0x0046), StringRef::Ref(0x0047)),
+            ],
+        };
+
+        let instant_record = EventRecord::Instant(Instant { event });
+
+        // Write it to a buffer
+        let mut buffer = Vec::new();
+        instant_record.write(&mut buffer)?;
+
+        // Read it back
+        let mut cursor = Cursor::new(&buffer);
+        let record = Record::from_bytes(&mut cursor)?;
+
+        // Verify it matches the original
+        match record {
+            Record::Event(EventRecord::Instant(instant)) => {
+                assert_eq!(instant.event.timestamp, 1000000);
+                assert_eq!(instant.event.thread, ThreadRef::Ref(5));
+                assert_eq!(instant.event.category, StringRef::Ref(10));
+                assert_eq!(instant.event.name, StringRef::Ref(15));
+
+                // Verify arguments
+                assert_eq!(instant.event.arguments.len(), 5);
+
+                // Verify first argument: Int32
+                match &instant.event.arguments[0] {
+                    Argument::Int32(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0042));
+                        assert_eq!(*value, 42);
+                    }
+                    _ => panic!("Expected Int32 argument"),
+                }
+
+                // Verify second argument: UInt64
+                match &instant.event.arguments[1] {
+                    Argument::UInt64(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0043));
+                        assert_eq!(*value, 0xDEADBEEF);
+                    }
+                    _ => panic!("Expected UInt64 argument"),
+                }
+
+                // Verify third argument: Float
+                match &instant.event.arguments[2] {
+                    Argument::Float(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0044));
+                        assert!((value - 3.14159).abs() < f64::EPSILON);
+                    }
+                    _ => panic!("Expected Float argument"),
+                }
+
+                // Verify fourth argument: Boolean
+                match &instant.event.arguments[3] {
+                    Argument::Boolean(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0045));
+                        assert!(*value);
+                    }
+                    _ => panic!("Expected Boolean argument"),
+                }
+
+                // Verify fifth argument: Str
+                match &instant.event.arguments[4] {
+                    Argument::Str(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0046));
+                        assert_eq!(*value, StringRef::Ref(0x0047));
+                    }
+                    _ => panic!("Expected Str argument"),
+                }
+            }
+            _ => panic!("Expected Instant event record"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_event_with_inline_argument_fields() -> Result<()> {
+        // Create an event with arguments that have inline fields
+        let event = Event {
+            timestamp: 1000000,
+            thread: ThreadRef::Ref(5),
+            category: StringRef::Ref(10),
+            name: StringRef::Ref(15),
+            arguments: vec![
+                Argument::Int32(StringRef::Inline("count".to_string()), 42),
+                Argument::Str(
+                    StringRef::Inline("message".to_string()),
+                    StringRef::Inline("hello world".to_string()),
+                ),
+            ],
+        };
+
+        let instant_record = EventRecord::Instant(Instant { event });
+
+        // Write it to a buffer
+        let mut buffer = Vec::new();
+        instant_record.write(&mut buffer)?;
+
+        // Read it back
+        let mut cursor = Cursor::new(&buffer);
+        let record = Record::from_bytes(&mut cursor)?;
+
+        // Verify it matches the original
+        match record {
+            Record::Event(EventRecord::Instant(instant)) => {
+                assert_eq!(instant.event.timestamp, 1000000);
+                assert_eq!(instant.event.thread, ThreadRef::Ref(5));
+                assert_eq!(instant.event.category, StringRef::Ref(10));
+                assert_eq!(instant.event.name, StringRef::Ref(15));
+
+                // Verify arguments
+                assert_eq!(instant.event.arguments.len(), 2);
+
+                // Verify first argument: Int32 with inline name
+                match &instant.event.arguments[0] {
+                    Argument::Int32(name, value) => {
+                        match name {
+                            StringRef::Inline(s) => assert_eq!(s, "count"),
+                            _ => panic!("Expected inline name"),
+                        }
+                        assert_eq!(*value, 42);
+                    }
+                    _ => panic!("Expected Int32 argument"),
+                }
+
+                // Verify second argument: Str with inline name and value
+                match &instant.event.arguments[1] {
+                    Argument::Str(name, value) => {
+                        match name {
+                            StringRef::Inline(s) => assert_eq!(s, "message"),
+                            _ => panic!("Expected inline name"),
+                        }
+                        match value {
+                            StringRef::Inline(s) => assert_eq!(s, "hello world"),
+                            _ => panic!("Expected inline value"),
+                        }
+                    }
+                    _ => panic!("Expected Str argument"),
+                }
+            }
+            _ => panic!("Expected Instant event record"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_counter_event_with_arguments() -> Result<()> {
+        // Create a counter event with arguments
+        let args = vec![
+            Argument::UInt64(StringRef::Ref(0x0050), 100),
+            Argument::UInt64(StringRef::Ref(0x0051), 200),
+        ];
+
+        let event = Event {
+            timestamp: 2000000,
+            thread: ThreadRef::Ref(6),
+            category: StringRef::Ref(11),
+            name: StringRef::Ref(16),
+            arguments: args,
+        };
+
+        let counter_record = EventRecord::Counter(Counter {
+            event,
+            counter_id: 42,
+        });
+
+        // Write it to a buffer
+        let mut buffer = Vec::new();
+        counter_record.write(&mut buffer)?;
+
+        // Read it back
+        let mut cursor = Cursor::new(&buffer);
+        let record = Record::from_bytes(&mut cursor)?;
+
+        // Verify it matches the original
+        match record {
+            Record::Event(EventRecord::Counter(counter)) => {
+                assert_eq!(counter.event.timestamp, 2000000);
+                assert_eq!(counter.event.thread, ThreadRef::Ref(6));
+                assert_eq!(counter.event.category, StringRef::Ref(11));
+                assert_eq!(counter.event.name, StringRef::Ref(16));
+                assert_eq!(counter.counter_id, 42);
+
+                // Verify arguments
+                assert_eq!(counter.event.arguments.len(), 2);
+
+                // Verify the arguments
+                for (i, arg) in counter.event.arguments.iter().enumerate() {
+                    match arg {
+                        Argument::UInt64(name, value) => {
+                            assert_eq!(*name, StringRef::Ref(0x0050 + i as u16));
+                            assert_eq!(*value, 100 * (i + 1) as u64);
+                        }
+                        _ => panic!("Expected UInt64 argument"),
+                    }
+                }
+            }
+            _ => panic!("Expected Counter event record"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_duration_event_with_arguments() -> Result<()> {
+        // Test both duration begin and end events with arguments
+
+        // Create a duration begin event with arguments
+        let begin_args = vec![
+            Argument::Int64(StringRef::Ref(0x0060), 1000),
+            Argument::Str(
+                StringRef::Ref(0x0061),
+                StringRef::Inline("begin".to_string()),
+            ),
+        ];
+
+        let begin_event = Event {
+            timestamp: 3000000,
+            thread: ThreadRef::Ref(7),
+            category: StringRef::Ref(12),
+            name: StringRef::Ref(17),
+            arguments: begin_args,
+        };
+
+        let begin_record = EventRecord::DurationBegin(DurationBegin { event: begin_event });
+
+        // Write begin event to a buffer
+        let mut begin_buffer = Vec::new();
+        begin_record.write(&mut begin_buffer)?;
+
+        // Read it back
+        let mut begin_cursor = Cursor::new(&begin_buffer);
+        let begin_parsed = Record::from_bytes(&mut begin_cursor)?;
+
+        // Verify begin event matches the original
+        match begin_parsed {
+            Record::Event(EventRecord::DurationBegin(begin)) => {
+                assert_eq!(begin.event.timestamp, 3000000);
+                assert_eq!(begin.event.thread, ThreadRef::Ref(7));
+                assert_eq!(begin.event.category, StringRef::Ref(12));
+                assert_eq!(begin.event.name, StringRef::Ref(17));
+
+                // Verify arguments
+                assert_eq!(begin.event.arguments.len(), 2);
+
+                // Check first argument: Int64
+                match &begin.event.arguments[0] {
+                    Argument::Int64(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0060));
+                        assert_eq!(*value, 1000);
+                    }
+                    _ => panic!("Expected Int64 argument"),
+                }
+
+                // Check second argument: Str
+                match &begin.event.arguments[1] {
+                    Argument::Str(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0061));
+                        match value {
+                            StringRef::Inline(s) => assert_eq!(s, "begin"),
+                            _ => panic!("Expected inline string value"),
+                        }
+                    }
+                    _ => panic!("Expected Str argument"),
+                }
+            }
+            _ => panic!("Expected DurationBegin event record"),
+        }
+
+        // Create a duration end event with arguments
+        let end_args = vec![
+            Argument::Int64(StringRef::Ref(0x0062), 2000),
+            Argument::Str(StringRef::Ref(0x0063), StringRef::Inline("end".to_string())),
+        ];
+
+        let end_event = Event {
+            timestamp: 4000000,
+            thread: ThreadRef::Ref(7),
+            category: StringRef::Ref(12),
+            name: StringRef::Ref(17),
+            arguments: end_args,
+        };
+
+        let end_record = EventRecord::DurationEnd(DurationEnd { event: end_event });
+
+        // Write end event to a buffer
+        let mut end_buffer = Vec::new();
+        end_record.write(&mut end_buffer)?;
+
+        // Read it back
+        let mut end_cursor = Cursor::new(&end_buffer);
+        let end_parsed = Record::from_bytes(&mut end_cursor)?;
+
+        // Verify end event matches the original
+        match end_parsed {
+            Record::Event(EventRecord::DurationEnd(end)) => {
+                assert_eq!(end.event.timestamp, 4000000);
+                assert_eq!(end.event.thread, ThreadRef::Ref(7));
+                assert_eq!(end.event.category, StringRef::Ref(12));
+                assert_eq!(end.event.name, StringRef::Ref(17));
+
+                // Verify arguments
+                assert_eq!(end.event.arguments.len(), 2);
+
+                // Check first argument: Int64
+                match &end.event.arguments[0] {
+                    Argument::Int64(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0062));
+                        assert_eq!(*value, 2000);
+                    }
+                    _ => panic!("Expected Int64 argument"),
+                }
+
+                // Check second argument: Str
+                match &end.event.arguments[1] {
+                    Argument::Str(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0063));
+                        match value {
+                            StringRef::Inline(s) => assert_eq!(s, "end"),
+                            _ => panic!("Expected inline string value"),
+                        }
+                    }
+                    _ => panic!("Expected Str argument"),
+                }
+            }
+            _ => panic!("Expected DurationEnd event record"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_duration_complete_with_arguments() -> Result<()> {
+        // Create a duration complete event with arguments
+        let args = vec![
+            Argument::Boolean(StringRef::Ref(0x0070), true),
+            Argument::Pointer(StringRef::Ref(0x0071), 0xDEADBEEF),
+            Argument::KernelObjectId(StringRef::Ref(0x0072), 0x12345678),
+        ];
+
+        let event = Event {
+            timestamp: 5000000,
+            thread: ThreadRef::Ref(8),
+            category: StringRef::Ref(13),
+            name: StringRef::Ref(18),
+            arguments: args,
+        };
+
+        let complete_record = EventRecord::DurationComplete(DurationComplete {
+            event,
+            end_ts: 6000000,
+        });
+
+        // Write it to a buffer
+        let mut buffer = Vec::new();
+        complete_record.write(&mut buffer)?;
+
+        // Read it back
+        let mut cursor = Cursor::new(&buffer);
+        let record = Record::from_bytes(&mut cursor)?;
+
+        // Verify it matches the original
+        match record {
+            Record::Event(EventRecord::DurationComplete(complete)) => {
+                assert_eq!(complete.event.timestamp, 5000000);
+                assert_eq!(complete.event.thread, ThreadRef::Ref(8));
+                assert_eq!(complete.event.category, StringRef::Ref(13));
+                assert_eq!(complete.event.name, StringRef::Ref(18));
+                assert_eq!(complete.end_ts, 6000000);
+
+                // Verify arguments
+                assert_eq!(complete.event.arguments.len(), 3);
+
+                // Check first argument: Boolean
+                match &complete.event.arguments[0] {
+                    Argument::Boolean(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0070));
+                        assert!(*value);
+                    }
+                    _ => panic!("Expected Boolean argument"),
+                }
+
+                // Check second argument: Pointer
+                match &complete.event.arguments[1] {
+                    Argument::Pointer(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0071));
+                        assert_eq!(*value, 0xDEADBEEF);
+                    }
+                    _ => panic!("Expected Pointer argument"),
+                }
+
+                // Check third argument: KernelObjectId
+                match &complete.event.arguments[2] {
+                    Argument::KernelObjectId(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0072));
+                        assert_eq!(*value, 0x12345678);
+                    }
+                    _ => panic!("Expected KernelObjectId argument"),
+                }
+            }
+            _ => panic!("Expected DurationComplete event record"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_all_argument_types_in_event() -> Result<()> {
+        // Create an event with all types of arguments
+        let args = vec![
+            Argument::Null(StringRef::Ref(0x0080)),
+            Argument::Int32(StringRef::Ref(0x0081), -42),
+            Argument::UInt32(StringRef::Ref(0x0082), 42),
+            Argument::Int64(StringRef::Ref(0x0083), -1234567890),
+            Argument::UInt64(StringRef::Ref(0x0084), 1234567890),
+            Argument::Float(StringRef::Ref(0x0085), 3.14159),
+            Argument::Str(StringRef::Ref(0x0086), StringRef::Ref(0x0087)),
+            Argument::Pointer(StringRef::Ref(0x0088), 0xDEADBEEF),
+            Argument::KernelObjectId(StringRef::Ref(0x0089), 0x12345678),
+            Argument::Boolean(StringRef::Ref(0x008A), true),
+        ];
+
+        let event = Event {
+            timestamp: 7000000,
+            thread: ThreadRef::Ref(9),
+            category: StringRef::Ref(14),
+            name: StringRef::Ref(19),
+            arguments: args,
+        };
+
+        let instant_record = EventRecord::Instant(Instant { event });
+
+        // Write it to a buffer
+        let mut buffer = Vec::new();
+        instant_record.write(&mut buffer)?;
+
+        // Read it back
+        let mut cursor = Cursor::new(&buffer);
+        let record = Record::from_bytes(&mut cursor)?;
+
+        // Verify it matches the original
+        match record {
+            Record::Event(EventRecord::Instant(instant)) => {
+                assert_eq!(instant.event.timestamp, 7000000);
+                assert_eq!(instant.event.thread, ThreadRef::Ref(9));
+                assert_eq!(instant.event.category, StringRef::Ref(14));
+                assert_eq!(instant.event.name, StringRef::Ref(19));
+
+                // Verify arguments (10 total)
+                assert_eq!(instant.event.arguments.len(), 10);
+
+                // Verify Null argument
+                match &instant.event.arguments[0] {
+                    Argument::Null(name) => {
+                        assert_eq!(*name, StringRef::Ref(0x0080));
+                    }
+                    _ => panic!("Expected Null argument"),
+                }
+
+                // Verify Int32 argument
+                match &instant.event.arguments[1] {
+                    Argument::Int32(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0081));
+                        assert_eq!(*value, -42);
+                    }
+                    _ => panic!("Expected Int32 argument"),
+                }
+
+                // Verify UInt32 argument
+                match &instant.event.arguments[2] {
+                    Argument::UInt32(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0082));
+                        assert_eq!(*value, 42);
+                    }
+                    _ => panic!("Expected UInt32 argument"),
+                }
+
+                // Verify Int64 argument
+                match &instant.event.arguments[3] {
+                    Argument::Int64(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0083));
+                        assert_eq!(*value, -1234567890);
+                    }
+                    _ => panic!("Expected Int64 argument"),
+                }
+
+                // Verify UInt64 argument
+                match &instant.event.arguments[4] {
+                    Argument::UInt64(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0084));
+                        assert_eq!(*value, 1234567890);
+                    }
+                    _ => panic!("Expected UInt64 argument"),
+                }
+
+                // Verify Float argument
+                match &instant.event.arguments[5] {
+                    Argument::Float(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0085));
+                        assert!((value - 3.14159).abs() < f64::EPSILON);
+                    }
+                    _ => panic!("Expected Float argument"),
+                }
+
+                // Verify Str argument
+                match &instant.event.arguments[6] {
+                    Argument::Str(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0086));
+                        assert_eq!(*value, StringRef::Ref(0x0087));
+                    }
+                    _ => panic!("Expected Str argument"),
+                }
+
+                // Verify Pointer argument
+                match &instant.event.arguments[7] {
+                    Argument::Pointer(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0088));
+                        assert_eq!(*value, 0xDEADBEEF);
+                    }
+                    _ => panic!("Expected Pointer argument"),
+                }
+
+                // Verify KernelObjectId argument
+                match &instant.event.arguments[8] {
+                    Argument::KernelObjectId(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0089));
+                        assert_eq!(*value, 0x12345678);
+                    }
+                    _ => panic!("Expected KernelObjectId argument"),
+                }
+
+                // Verify Boolean argument
+                match &instant.event.arguments[9] {
+                    Argument::Boolean(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x008A));
+                        assert!(*value);
+                    }
+                    _ => panic!("Expected Boolean argument"),
+                }
+            }
+            _ => panic!("Expected Instant event record"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_complex_event_arguments_roundtrip() -> Result<()> {
+        // Create an event with complex arguments structure
+
+        // Create a mix of inline and reference argument fields
+        let args = vec![
+            // Argument with inline name
+            Argument::Int32(StringRef::Inline("count".to_string()), 42),
+            // Argument with both inline name and value
+            Argument::Str(
+                StringRef::Inline("message".to_string()),
+                StringRef::Inline("hello world".to_string()),
+            ),
+            // Argument with reference name and inline value
+            Argument::Str(
+                StringRef::Ref(0x0090),
+                StringRef::Inline("ref-name-inline-value".to_string()),
+            ),
+            // Nested string value that's longer than 8 bytes to ensure proper padding
+            Argument::Str(
+                StringRef::Inline("long-message".to_string()),
+                StringRef::Inline("this is a longer string that needs padding".to_string()),
+            ),
+        ];
+
+        let event = Event {
+            timestamp: 8000000,
+            thread: ThreadRef::Inline {
+                process_koid: 111111,
+                thread_koid: 222222,
+            },
+            category: StringRef::Inline("test-category".to_string()),
+            name: StringRef::Inline("test-event-name".to_string()),
+            arguments: args,
+        };
+
+        let instant_record = EventRecord::Instant(Instant { event });
+
+        // Write it to a buffer
+        let mut buffer = Vec::new();
+        instant_record.write(&mut buffer)?;
+
+        // Read it back
+        let mut cursor = Cursor::new(&buffer);
+        let record = Record::from_bytes(&mut cursor)?;
+
+        // Verify it matches the original
+        match record {
+            Record::Event(EventRecord::Instant(instant)) => {
+                assert_eq!(instant.event.timestamp, 8000000);
+                assert_eq!(
+                    instant.event.thread,
+                    ThreadRef::Inline {
+                        process_koid: 111111,
+                        thread_koid: 222222
+                    }
+                );
+
+                match &instant.event.category {
+                    StringRef::Inline(s) => assert_eq!(s, "test-category"),
+                    _ => panic!("Expected inline category"),
+                }
+
+                match &instant.event.name {
+                    StringRef::Inline(s) => assert_eq!(s, "test-event-name"),
+                    _ => panic!("Expected inline name"),
+                }
+
+                // Verify arguments (4 total)
+                assert_eq!(instant.event.arguments.len(), 4);
+
+                // First argument: Int32 with inline name
+                match &instant.event.arguments[0] {
+                    Argument::Int32(name, value) => {
+                        match name {
+                            StringRef::Inline(s) => assert_eq!(s, "count"),
+                            _ => panic!("Expected inline name"),
+                        }
+                        assert_eq!(*value, 42);
+                    }
+                    _ => panic!("Expected Int32 argument"),
+                }
+
+                // Second argument: Str with inline name and value
+                match &instant.event.arguments[1] {
+                    Argument::Str(name, value) => {
+                        match name {
+                            StringRef::Inline(s) => assert_eq!(s, "message"),
+                            _ => panic!("Expected inline name"),
+                        }
+                        match value {
+                            StringRef::Inline(s) => assert_eq!(s, "hello world"),
+                            _ => panic!("Expected inline value"),
+                        }
+                    }
+                    _ => panic!("Expected Str argument"),
+                }
+
+                // Third argument: Str with reference name and inline value
+                match &instant.event.arguments[2] {
+                    Argument::Str(name, value) => {
+                        assert_eq!(*name, StringRef::Ref(0x0090));
+                        match value {
+                            StringRef::Inline(s) => assert_eq!(s, "ref-name-inline-value"),
+                            _ => panic!("Expected inline value"),
+                        }
+                    }
+                    _ => panic!("Expected Str argument"),
+                }
+
+                // Fourth argument: Str with inline name and long inline value
+                match &instant.event.arguments[3] {
+                    Argument::Str(name, value) => {
+                        match name {
+                            StringRef::Inline(s) => assert_eq!(s, "long-message"),
+                            _ => panic!("Expected inline name"),
+                        }
+                        match value {
+                            StringRef::Inline(s) => {
+                                assert_eq!(s, "this is a longer string that needs padding")
+                            }
+                            _ => panic!("Expected inline value"),
+                        }
+                    }
+                    _ => panic!("Expected Str argument"),
+                }
+            }
+            _ => panic!("Expected Instant event record"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_event_num_words_calculation() -> Result<()> {
+        // Test that the event properly calculates its size including arguments
+
+        // Create an event with mix of argument types for size calculation testing
+        let args = vec![
+            // 1 word (header only)
+            Argument::Boolean(StringRef::Ref(0x00A0), true),
+            // 2 words (header + inline name)
+            Argument::Int32(StringRef::Inline("int32".to_string()), 42),
+            // 2 words (header + value)
+            Argument::Int64(StringRef::Ref(0x00A1), 12345),
+            // 3 words (header + inline name + value)
+            Argument::UInt64(StringRef::Inline("uint64".to_string()), 67890),
+            // 2 words (header + inline value)
+            Argument::Str(
+                StringRef::Ref(0x00A2),
+                StringRef::Inline("string".to_string()),
+            ),
+            // 3 words (header + inline name + inline value)
+            Argument::Str(
+                StringRef::Inline("key".to_string()),
+                StringRef::Inline("value".to_string()),
+            ),
+        ];
+
+        // Expected words:
+        // - 1 for header
+        // - 1 for timestamp
+        // - 0 for thread ref (not inline)
+        // - 0 for category ref (not inline)
+        // - 0 for name ref (not inline)
+        // - Arguments: 1 + 2 + 2 + 3 + 2 + 3 = 13
+        // Total: 1 + 1 + 13 = 15 words
+
+        let event = Event {
+            timestamp: 9000000,
+            thread: ThreadRef::Ref(10),
+            category: StringRef::Ref(20),
+            name: StringRef::Ref(30),
+            arguments: args,
+        };
+
+        let instant_record = EventRecord::Instant(Instant { event });
+
+        // Write it to a buffer
+        let mut buffer = Vec::new();
+        instant_record.write(&mut buffer)?;
+
+        // Verify the buffer size is 15 words (120 bytes)
+        assert_eq!(buffer.len(), 15 * 8);
+
+        // Verify the header word has the correct size
+        let header_value = u64::from_ne_bytes([
+            buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7],
+        ]);
+
+        // Extract size from header (bits 4-15)
+        let size = (header_value >> 4) & 0xFFF;
+        assert_eq!(size, 15);
+
+        // Extract argument count (bits 20-23)
+        let arg_count = (header_value >> 20) & 0xF;
+        assert_eq!(arg_count, 6);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_event_arguments_padding() -> Result<()> {
+        // Test that string arguments are properly padded to 8-byte boundaries
+
+        // Create an event with string arguments of various lengths
+        let args = vec![
+            // 7 character string (fits in 8 bytes with null terminator)
+            Argument::Str(
+                StringRef::Ref(0x00B0),
+                StringRef::Inline("7-chars".to_string()),
+            ),
+            // 8 character string (needs padding to 16 bytes)
+            Argument::Str(
+                StringRef::Ref(0x00B1),
+                StringRef::Inline("8-chars!".to_string()),
+            ),
+            // 15 character string (fits in 16 bytes with null terminator)
+            Argument::Str(
+                StringRef::Ref(0x00B2),
+                StringRef::Inline("15-chars-string".to_string()),
+            ),
+            // 16 character string (needs padding to 24 bytes)
+            Argument::Str(
+                StringRef::Ref(0x00B3),
+                StringRef::Inline("16-chars-string!".to_string()),
+            ),
+        ];
+
+        let event = Event {
+            timestamp: 10000000,
+            thread: ThreadRef::Ref(11),
+            category: StringRef::Ref(21),
+            name: StringRef::Ref(31),
+            arguments: args,
+        };
+
+        let instant_record = EventRecord::Instant(Instant { event });
+
+        // Write it to a buffer
+        let mut buffer = Vec::new();
+        instant_record.write(&mut buffer)?;
+
+        // Read it back
+        let mut cursor = Cursor::new(&buffer);
+        let record = Record::from_bytes(&mut cursor)?;
+
+        // Verify strings were preserved correctly
+        match record {
+            Record::Event(EventRecord::Instant(instant)) => {
+                assert_eq!(instant.event.arguments.len(), 4);
+
+                // First argument: 7 character string
+                match &instant.event.arguments[0] {
+                    Argument::Str(_, value) => match value {
+                        StringRef::Inline(s) => assert_eq!(s, "7-chars"),
+                        _ => panic!("Expected inline string value"),
+                    },
+                    _ => panic!("Expected Str argument"),
+                }
+
+                // Second argument: 8 character string
+                match &instant.event.arguments[1] {
+                    Argument::Str(_, value) => match value {
+                        StringRef::Inline(s) => assert_eq!(s, "8-chars!"),
+                        _ => panic!("Expected inline string value"),
+                    },
+                    _ => panic!("Expected Str argument"),
+                }
+
+                // Third argument: 15 character string
+                match &instant.event.arguments[2] {
+                    Argument::Str(_, value) => match value {
+                        StringRef::Inline(s) => assert_eq!(s, "15-chars-string"),
+                        _ => panic!("Expected inline string value"),
+                    },
+                    _ => panic!("Expected Str argument"),
+                }
+
+                // Fourth argument: 16 character string
+                match &instant.event.arguments[3] {
+                    Argument::Str(_, value) => match value {
+                        StringRef::Inline(s) => assert_eq!(s, "16-chars-string!"),
+                        _ => panic!("Expected inline string value"),
+                    },
+                    _ => panic!("Expected Str argument"),
+                }
+            }
+            _ => panic!("Expected Instant event record"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_event_with_arguments() -> Result<()> {
+        // Test that EventRecord factory functions properly handle arguments
+
+        let args = vec![
+            Argument::Int32(StringRef::Ref(0x00C0), 42),
+            Argument::Str(
+                StringRef::Ref(0x00C1),
+                StringRef::Inline("value".to_string()),
+            ),
+        ];
+
+        // Create an instant event
+        let instant = EventRecord::create_instant(
+            1000000,
+            ThreadRef::Ref(12),
+            StringRef::Ref(22),
+            StringRef::Ref(32),
+            args.clone(),
+        );
+
+        match instant {
+            EventRecord::Instant(i) => {
+                assert_eq!(i.event.timestamp, 1000000);
+                assert_eq!(i.event.thread, ThreadRef::Ref(12));
+                assert_eq!(i.event.category, StringRef::Ref(22));
+                assert_eq!(i.event.name, StringRef::Ref(32));
+                assert_eq!(i.event.arguments.len(), 2);
+            }
+            _ => panic!("Expected Instant event"),
+        }
+
+        // Create a counter event
+        let counter = EventRecord::create_counter(
+            2000000,
+            ThreadRef::Ref(13),
+            StringRef::Ref(23),
+            StringRef::Ref(33),
+            args.clone(),
+            100,
+        );
+
+        match counter {
+            EventRecord::Counter(c) => {
+                assert_eq!(c.event.timestamp, 2000000);
+                assert_eq!(c.event.thread, ThreadRef::Ref(13));
+                assert_eq!(c.event.category, StringRef::Ref(23));
+                assert_eq!(c.event.name, StringRef::Ref(33));
+                assert_eq!(c.event.arguments.len(), 2);
+                assert_eq!(c.counter_id, 100);
+            }
+            _ => panic!("Expected Counter event"),
+        }
+
+        // Create a duration begin event
+        let duration_begin = EventRecord::create_duration_begin(
+            3000000,
+            ThreadRef::Ref(14),
+            StringRef::Ref(24),
+            StringRef::Ref(34),
+            args.clone(),
+        );
+
+        match duration_begin {
+            EventRecord::DurationBegin(b) => {
+                assert_eq!(b.event.timestamp, 3000000);
+                assert_eq!(b.event.thread, ThreadRef::Ref(14));
+                assert_eq!(b.event.category, StringRef::Ref(24));
+                assert_eq!(b.event.name, StringRef::Ref(34));
+                assert_eq!(b.event.arguments.len(), 2);
+            }
+            _ => panic!("Expected DurationBegin event"),
+        }
+
+        // Create a duration end event
+        let duration_end = EventRecord::create_duration_end(
+            4000000,
+            ThreadRef::Ref(15),
+            StringRef::Ref(25),
+            StringRef::Ref(35),
+            args.clone(),
+        );
+
+        match duration_end {
+            EventRecord::DurationEnd(e) => {
+                assert_eq!(e.event.timestamp, 4000000);
+                assert_eq!(e.event.thread, ThreadRef::Ref(15));
+                assert_eq!(e.event.category, StringRef::Ref(25));
+                assert_eq!(e.event.name, StringRef::Ref(35));
+                assert_eq!(e.event.arguments.len(), 2);
+            }
+            _ => panic!("Expected DurationEnd event"),
+        }
+
+        // Create a duration complete event
+        let duration_complete = EventRecord::create_duration_complete(
+            5000000,
+            ThreadRef::Ref(16),
+            StringRef::Ref(26),
+            StringRef::Ref(36),
+            args.clone(),
+            6000000,
+        );
+
+        match duration_complete {
+            EventRecord::DurationComplete(c) => {
+                assert_eq!(c.event.timestamp, 5000000);
+                assert_eq!(c.event.thread, ThreadRef::Ref(16));
+                assert_eq!(c.event.category, StringRef::Ref(26));
+                assert_eq!(c.event.name, StringRef::Ref(36));
+                assert_eq!(c.event.arguments.len(), 2);
+                assert_eq!(c.end_ts, 6000000);
+            }
+            _ => panic!("Expected DurationComplete event"),
         }
 
         Ok(())
