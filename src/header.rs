@@ -72,6 +72,7 @@ impl RecordHeader {
         Ok(Self { value: res })
     }
 
+    #[allow(dead_code)]
     pub fn size(&self) -> u16 {
         extract_bits!(self.value, 4, 15) as u16
     }

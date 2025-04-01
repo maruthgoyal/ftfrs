@@ -1,5 +1,5 @@
 mod bitutils;
-mod event;
+pub mod event;
 mod header;
 mod initialization;
 mod metadata;
@@ -21,7 +21,6 @@ use wordutils::read_u64_word;
 mod tests {
     pub mod archive_test;
     pub mod bitutils_test;
-    pub mod event_test;
 }
 
 use std::io::{ErrorKind, Read, Write};
@@ -190,6 +189,58 @@ impl Record {
 
     pub fn create_magic_number() -> Self {
         Self::Metadata(MetadataRecord::MagicNumber)
+    }
+    
+    pub fn create_instant_event(
+        timestamp: u64,
+        thread: ThreadOrRef,
+        category: StringOrRef,
+        name: StringOrRef,
+        arguments: Vec<Argument>,
+    ) -> Self {
+        Self::Event(EventRecord::create_instant(timestamp, thread, category, name, arguments))
+    }
+
+    pub fn create_counter_event(
+        timestamp: u64,
+        thread: ThreadOrRef,
+        category: StringOrRef,
+        name: StringOrRef,
+        arguments: Vec<Argument>,
+        counter_id: u64,
+    ) -> Self {
+        Self::Event(EventRecord::create_counter(timestamp, thread, category, name, arguments, counter_id))
+    }
+
+    pub fn create_duration_begin_event(
+        timestamp: u64,
+        thread: ThreadOrRef,
+        category: StringOrRef,
+        name: StringOrRef,
+        arguments: Vec<Argument>,
+    ) -> Self {
+        Self::Event(EventRecord::create_duration_begin(timestamp, thread, category, name, arguments))
+    }
+
+    pub fn create_duration_end_event(
+        timestamp: u64,
+        thread: ThreadOrRef,
+        category: StringOrRef,
+        name: StringOrRef,
+        arguments: Vec<Argument>,
+    ) -> Self {
+        Self::Event(EventRecord::create_duration_end(timestamp, thread, category, name, arguments))
+    }
+
+    pub fn create_duration_complete_event(
+        timestamp: u64,
+        thread: ThreadOrRef,
+        category: StringOrRef,
+        name: StringOrRef,
+        arguments: Vec<Argument>,
+        end_ts: u64,
+    ) -> Self {
+        Self::Event(EventRecord::create_duration_complete(timestamp, thread, category, name, arguments, end_ts))
     }
 
     pub fn from_bytes<U: Read>(reader: &mut U) -> Result<Record> {
