@@ -197,7 +197,6 @@ fn write_sample_trace(file_path: &str) -> Result<()> {
     // Counter event with string reference argument names
     let fps_args = vec![
         Argument::UInt32(StringRef::Ref(4), 60), // "count" = 60
-        // Argument::Boolean(StringRef::Inline("vsync".to_string()), true),
     ];
     
     archive.records.push(Record::create_counter_event(
