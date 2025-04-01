@@ -151,20 +151,20 @@ fn write_sample_trace(file_path: &str) -> Result<()> {
         7, // length
         "network".to_string(),
     ));
-    
+
     // Add string records for argument names
     archive.records.push(Record::create_string(
         4, // index
         5, // length
         "count".to_string(),
     ));
-    
+
     archive.records.push(Record::create_string(
         5, // index
         8, // length
         "duration".to_string(),
     ));
-    
+
     archive.records.push(Record::create_string(
         6, // index
         4, // length
@@ -185,7 +185,7 @@ fn write_sample_trace(file_path: &str) -> Result<()> {
         Argument::Int32(StringRef::Inline("frame_number".to_string()), 42),
         Argument::Float(StringRef::Inline("render_time_ms".to_string()), 16.7),
     ];
-    
+
     archive.records.push(Record::create_instant_event(
         100_000, // timestamp
         ThreadRef::Ref(1),
@@ -198,7 +198,7 @@ fn write_sample_trace(file_path: &str) -> Result<()> {
     let fps_args = vec![
         Argument::UInt32(StringRef::Ref(4), 60), // "count" = 60
     ];
-    
+
     archive.records.push(Record::create_counter_event(
         150_000, // timestamp
         ThreadRef::Ref(1),
@@ -214,16 +214,13 @@ fn write_sample_trace(file_path: &str) -> Result<()> {
             StringRef::Ref(6), // "size"
             StringRef::Inline("large".to_string()),
         ),
-        Argument::UInt64(
-            StringRef::Inline("timeout_ms".to_string()),
-            5000,
-        ),
+        Argument::UInt64(StringRef::Inline("timeout_ms".to_string()), 5000),
         Argument::Str(
             StringRef::Inline("query_type".to_string()),
             StringRef::Inline("SELECT".to_string()),
         ),
     ];
-    
+
     archive.records.push(Record::create_duration_begin_event(
         200_000, // timestamp
         ThreadRef::Ref(1),
@@ -234,11 +231,11 @@ fn write_sample_trace(file_path: &str) -> Result<()> {
 
     // Duration end with result arguments
     let query_end_args = vec![
-        Argument::Int32(StringRef::Ref(4), 157),  // "count" = 157 (rows returned)
-        Argument::Int64(StringRef::Ref(5), 42),   // "duration" = 42 (milliseconds)
+        Argument::Int32(StringRef::Ref(4), 157), // "count" = 157 (rows returned)
+        Argument::Int64(StringRef::Ref(5), 42),  // "duration" = 42 (milliseconds)
         Argument::Boolean(StringRef::Inline("success".to_string()), true),
     ];
-    
+
     archive.records.push(Record::create_duration_end_event(
         250_000, // timestamp
         ThreadRef::Ref(1),
@@ -254,7 +251,7 @@ fn write_sample_trace(file_path: &str) -> Result<()> {
         Argument::UInt64(StringRef::Ref(6), 1024), // "size" = 1024 bytes
         Argument::Int32(StringRef::Inline("status_code".to_string()), 200),
     ];
-    
+
     archive.records.push(Record::create_duration_complete_event(
         300_000, // start timestamp
         ThreadRef::Ref(1),
@@ -269,7 +266,7 @@ fn write_sample_trace(file_path: &str) -> Result<()> {
         Argument::Null(StringRef::Inline("initialized".to_string())),
         Argument::UInt64(StringRef::Inline("boot_time_ms".to_string()), 1253),
     ];
-    
+
     archive.records.push(Record::create_instant_event(
         400_000, // timestamp
         ThreadRef::Inline {

@@ -79,7 +79,7 @@ impl StringRef {
     fn encoding_num_words(&self) -> u8 {
         match self {
             StringRef::Ref(_) => 0,
-            StringRef::Inline(s) => ((s.len() + 7) /8) as u8
+            StringRef::Inline(s) => ((s.len() + 7) / 8) as u8,
         }
     }
 }

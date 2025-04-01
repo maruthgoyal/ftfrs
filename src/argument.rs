@@ -128,12 +128,7 @@ impl Argument {
         header
     }
 
-    fn write_header_and_name<W: Write>(
-        &self,
-        writer: &mut W,
-        data: u32,
-    ) -> Result<()> {
-
+    fn write_header_and_name<W: Write>(&self, writer: &mut W, data: u32) -> Result<()> {
         let num_words = self.encoding_num_words();
         println!("arg {num_words}");
         let arg_name = self.name();
@@ -147,7 +142,7 @@ impl Argument {
 
         Ok(())
     }
-    
+
     fn arg_type(&self) -> ArgumentType {
         match self {
             Argument::Null(_) => ArgumentType::Null,
@@ -206,15 +201,9 @@ impl Argument {
 
     pub(super) fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         match self {
-            Argument::Null(_) => {
-                self.write_header_and_name(writer, 0)
-            }
-            Argument::Int32(_, val) => {
-                self.write_header_and_name(writer, *val as u32)
-            }
-            Argument::UInt32(_, val) => {
-                self.write_header_and_name(writer, *val)
-            }
+            Argument::Null(_) => self.write_header_and_name(writer, 0),
+            Argument::Int32(_, val) => self.write_header_and_name(writer, *val as u32),
+            Argument::UInt32(_, val) => self.write_header_and_name(writer, *val),
             Argument::Int64(_, val) => {
                 self.write_header_and_name(writer, 0)?;
                 writer.write_all(&(*val as u64).to_ne_bytes())?;
@@ -232,7 +221,7 @@ impl Argument {
             }
             Argument::Str(_, val) => {
                 self.write_header_and_name(writer, val.to_field() as u32)?;
-               if let StringRef::Inline(s) = val {
+                if let StringRef::Inline(s) = val {
                     let padded = pad_to_multiple_of_8(s.as_bytes());
                     writer.write_all(&padded)?;
                 }
@@ -248,8 +237,9 @@ impl Argument {
                 writer.write_all(&(*val).to_ne_bytes())?;
                 Ok(())
             }
-            Argument::Boolean(_, val) => 
-                self.write_header_and_name(writer, if *val { 1 } else { 0 }),
+            Argument::Boolean(_, val) => {
+                self.write_header_and_name(writer, if *val { 1 } else { 0 })
+            }
         }
     }
 }

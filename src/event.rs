@@ -117,7 +117,7 @@ impl Event {
         if let StringRef::Inline(s) = &self.name {
             num_words += (s.len() + 7) / 8;
         }
-        
+
         println!("num words pre-arg {num_words}");
 
         for arg in &self.arguments {
