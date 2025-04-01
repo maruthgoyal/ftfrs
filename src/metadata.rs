@@ -50,7 +50,6 @@ pub struct ProviderInfo {
 
 impl ProviderInfo {
     pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
-
         let str_bytes = self.provider_name.as_bytes();
         let size = 1 + (str_bytes.len() + 7) / 8;
 

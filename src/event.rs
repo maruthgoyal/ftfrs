@@ -130,11 +130,8 @@ impl DurationComplete {
     }
 
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
-        self.event.write_event(
-            writer,
-            EventType::DurationComplete,
-            vec![self.end_ts],
-        )
+        self.event
+            .write_event(writer, EventType::DurationComplete, vec![self.end_ts])
     }
 }
 
