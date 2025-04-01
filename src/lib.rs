@@ -20,7 +20,6 @@ use wordutils::read_u64_word;
 #[cfg(test)]
 mod tests {
     pub mod archive_test;
-    pub mod bitutils_test;
 }
 
 use std::io::{ErrorKind, Read, Write};
