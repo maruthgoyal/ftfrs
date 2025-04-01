@@ -55,7 +55,7 @@ fn main() -> Result<()> {
 
 ```rust
 use ftfrs::{
-    Archive, Record, StringOrRef, ThreadOrRef, Result
+    Archive, Record, StringRef, ThreadRef, Result
 };
 use std::fs::File;
 use std::io::BufWriter;
@@ -92,27 +92,27 @@ fn main() -> Result<()> {
     // Add an instant event
     archive.records.push(Record::create_instant_event(
         100_000, // timestamp (100 microseconds)
-        ThreadOrRef::Ref(1),
-        StringOrRef::String("category".to_string()),
-        StringOrRef::String("started".to_string()),
+        ThreadRef::Ref(1),
+        StringRef::Inline("category".to_string()),
+        StringRef::Inline("started".to_string()),
         Vec::new(), // arguments
     ));
     
     // Add a duration begin event
     archive.records.push(Record::create_duration_begin_event(
         200_000, // timestamp (200 microseconds)
-        ThreadOrRef::Ref(1),
-        StringOrRef::String("category".to_string()),
-        StringOrRef::String("process".to_string()),
+        ThreadRef::Ref(1),
+        StringRef::Inline("category".to_string()),
+        StringRef::Inline("process".to_string()),
         Vec::new(), // arguments
     ));
     
     // Add a duration end event
     archive.records.push(Record::create_duration_end_event(
         300_000, // timestamp (300 microseconds)
-        ThreadOrRef::Ref(1),
-        StringOrRef::String("category".to_string()),
-        StringOrRef::String("process".to_string()),
+        ThreadRef::Ref(1),
+        StringRef::Inline("category".to_string()),
+        StringRef::Inline("process".to_string()),
         Vec::new(), // arguments
     ));
     
@@ -129,14 +129,14 @@ fn main() -> Result<()> {
 ### Creating a Duration Event with Both Start and End
 
 ```rust
-use ftfrs::{Record, StringOrRef, ThreadOrRef};
+use ftfrs::{Record, StringRef, ThreadRef};
 
 // Create a duration complete event (captures both start and end)
 let duration_event = Record::create_duration_complete_event(
     100_000,  // start timestamp (100 microseconds)
-    ThreadOrRef::Ref(1),
-    StringOrRef::String("category".to_string()),
-    StringOrRef::String("operation".to_string()),
+    ThreadRef::Ref(1),
+    StringRef::Inline("category".to_string()),
+    StringRef::Inline("operation".to_string()),
     Vec::new(), // arguments
     150_000,  // end timestamp (150 microseconds)
 );
@@ -145,14 +145,14 @@ let duration_event = Record::create_duration_complete_event(
 ### Creating a Counter Event
 
 ```rust
-use ftfrs::{Record, StringOrRef, ThreadOrRef};
+use ftfrs::{Record, StringRef, ThreadRef};
 
 // Create a counter event
 let counter_event = Record::create_counter_event(
     200_000, // timestamp
-    ThreadOrRef::Ref(1),
-    StringOrRef::String("metrics".to_string()),
-    StringOrRef::String("cpu_usage".to_string()),
+    ThreadRef::Ref(1),
+    StringRef::Inline("metrics".to_string()),
+    StringRef::Inline("cpu_usage".to_string()),
     Vec::new(), // arguments (would typically contain the counter value)
     42,       // counter ID
 );
@@ -166,18 +166,18 @@ When creating events, you can use either inline strings or references to previou
 // Using a string reference (more efficient for repeated strings)
 let event_with_ref = Record::create_instant_event(
     300_000,
-    ThreadOrRef::Ref(1),
-    StringOrRef::Ref(2), // Reference to string record with index 2
-    StringOrRef::Ref(3), // Reference to string record with index 3
+    ThreadRef::Ref(1),
+    StringRef::Ref(2), // Reference to string record with index 2
+    StringRef::Ref(3), // Reference to string record with index 3
     Vec::new(),
 );
 
 // Using an inline string (simpler for one-off strings)
 let event_with_inline = Record::create_instant_event(
     400_000,
-    ThreadOrRef::Ref(1),
-    StringOrRef::String("category".to_string()), // Inline string
-    StringOrRef::String("event_name".to_string()), // Inline string
+    ThreadRef::Ref(1),
+    StringRef::Inline("category".to_string()), // Inline string
+    StringRef::Inline("event_name".to_string()), // Inline string
     Vec::new(),
 );
 ```

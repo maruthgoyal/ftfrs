@@ -7,7 +7,7 @@ use thiserror::Error;
 use crate::{
     extract_bits,
     wordutils::{read_aligned_str, read_u64_word},
-    Argument, RecordHeader, StringOrRef, ThreadOrRef,
+    Argument, RecordHeader, StringRef, ThreadRef,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -54,18 +54,18 @@ impl TryFrom<u8> for EventType {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Event {
     timestamp: u64,
-    thread: ThreadOrRef,
-    category: StringOrRef,
-    name: StringOrRef,
+    thread: ThreadRef,
+    category: StringRef,
+    name: StringRef,
     arguments: Vec<Argument>,
 }
 
 impl Event {
     pub fn new(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
     ) -> Self {
         Self {
@@ -81,15 +81,15 @@ impl Event {
         self.timestamp
     }
 
-    pub fn thread(&self) -> &ThreadOrRef {
+    pub fn thread(&self) -> &ThreadRef {
         &self.thread
     }
 
-    pub fn category(&self) -> &StringOrRef {
+    pub fn category(&self) -> &StringRef {
         &self.category
     }
 
-    pub fn name(&self) -> &StringOrRef {
+    pub fn name(&self) -> &StringRef {
         &self.name
     }
 
@@ -105,15 +105,15 @@ impl Event {
     ) -> Result<()> {
         // header + timestamp always
         let mut num_words = 1 + 1;
-        if let ThreadOrRef::ProcessAndThread(_, _) = &self.thread {
+        if let ThreadRef::Inline { .. } = &self.thread {
             num_words += 2;
         }
 
-        if let StringOrRef::String(s) = &self.category {
+        if let StringRef::Inline(s) = &self.category {
             num_words += (s.len() + 7) / 8;
         }
 
-        if let StringOrRef::String(s) = &self.name {
+        if let StringRef::Inline(s) = &self.name {
             num_words += (s.len() + 7) / 8;
         }
 
@@ -151,17 +151,21 @@ impl Event {
         writer.write_all(&header.value.to_le_bytes())?;
         writer.write_all(&self.timestamp.to_le_bytes())?;
 
-        if let ThreadOrRef::ProcessAndThread(p, t) = self.thread {
-            writer.write_all(&p.to_le_bytes())?;
-            writer.write_all(&t.to_le_bytes())?;
+        if let ThreadRef::Inline {
+            process_koid,
+            thread_koid,
+        } = self.thread
+        {
+            writer.write_all(&process_koid.to_le_bytes())?;
+            writer.write_all(&thread_koid.to_le_bytes())?;
         }
 
-        if let StringOrRef::String(s) = &self.category {
+        if let StringRef::Inline(s) = &self.category {
             let padded = pad_to_multiple_of_8(s.as_bytes());
             writer.write_all(&padded)?;
         }
 
-        if let StringOrRef::String(s) = &self.name {
+        if let StringRef::Inline(s) = &self.name {
             let padded = pad_to_multiple_of_8(s.as_bytes());
             writer.write_all(&padded)?;
         }
@@ -184,9 +188,9 @@ pub struct Instant {
 impl Instant {
     pub fn new(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
     ) -> Self {
         Self {
@@ -213,9 +217,9 @@ pub struct Counter {
 impl Counter {
     pub fn new(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
         counter_id: u64,
     ) -> Self {
@@ -252,9 +256,9 @@ pub struct DurationBegin {
 impl DurationBegin {
     pub fn new(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
     ) -> Self {
         Self {
@@ -280,9 +284,9 @@ pub struct DurationEnd {
 impl DurationEnd {
     pub fn new(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
     ) -> Self {
         Self {
@@ -309,9 +313,9 @@ pub struct DurationComplete {
 impl DurationComplete {
     pub fn new(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
         end_ts: u64,
     ) -> Self {
@@ -361,9 +365,9 @@ pub enum EventRecord {
 impl EventRecord {
     pub fn create_instant(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
     ) -> Self {
         Self::Instant(Instant::new(timestamp, thread, category, name, arguments))
@@ -371,9 +375,9 @@ impl EventRecord {
 
     pub fn create_counter(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
         counter_id: u64,
     ) -> Self {
@@ -384,9 +388,9 @@ impl EventRecord {
 
     pub fn create_duration_begin(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
     ) -> Self {
         Self::DurationBegin(DurationBegin::new(
@@ -396,9 +400,9 @@ impl EventRecord {
 
     pub fn create_duration_end(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
     ) -> Self {
         Self::DurationEnd(DurationEnd::new(
@@ -408,9 +412,9 @@ impl EventRecord {
 
     pub fn create_duration_complete(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
         end_ts: u64,
     ) -> Self {
@@ -462,25 +466,28 @@ impl EventRecord {
         let timestamp = read_u64_word(reader)?;
 
         let thread = if thread == 0 {
-            let process_id = read_u64_word(reader)?;
-            let thread_id = read_u64_word(reader)?;
-            ThreadOrRef::ProcessAndThread(process_id, thread_id)
+            let process_koid = read_u64_word(reader)?;
+            let thread_koid = read_u64_word(reader)?;
+            ThreadRef::Inline {
+                process_koid,
+                thread_koid,
+            }
         } else {
-            ThreadOrRef::Ref(thread)
+            ThreadRef::Ref(thread)
         };
 
         let category = if (category >> 15) == 0 {
-            StringOrRef::Ref(category)
+            StringRef::Ref(category)
         } else {
             let cat = read_aligned_str(reader, (category & 0x7FFF) as usize)?;
-            StringOrRef::String(cat)
+            StringRef::Inline(cat)
         };
 
         let name = if (name >> 15) == 0 {
-            StringOrRef::Ref(name)
+            StringRef::Ref(name)
         } else {
             let n = read_aligned_str(reader, (name & 0x7FFF) as usize)?;
-            StringOrRef::String(n)
+            StringRef::Inline(n)
         };
 
         if n_args > 0 {
@@ -519,7 +526,7 @@ impl EventRecord {
 #[allow(clippy::identity_op)]
 mod tests {
     use super::*;
-    use crate::{Record, StringOrRef, ThreadOrRef};
+    use crate::{Record, StringRef, ThreadRef};
     use std::io::Cursor;
 
     #[test]
@@ -560,9 +567,9 @@ mod tests {
         match record {
             EventRecord::Instant(instant) => {
                 assert_eq!(instant.event.timestamp, 1000000);
-                assert_eq!(instant.event.thread, ThreadOrRef::Ref(5));
-                assert_eq!(instant.event.category, StringOrRef::Ref(10));
-                assert_eq!(instant.event.name, StringOrRef::Ref(15));
+                assert_eq!(instant.event.thread, ThreadRef::Ref(5));
+                assert_eq!(instant.event.category, StringRef::Ref(10));
+                assert_eq!(instant.event.name, StringRef::Ref(15));
                 assert!(instant.event.arguments.is_empty());
             }
             _ => panic!("Expected Instant event record"),
@@ -612,9 +619,9 @@ mod tests {
         match record {
             EventRecord::Counter(counter) => {
                 assert_eq!(counter.event.timestamp, 1000000);
-                assert_eq!(counter.event.thread, ThreadOrRef::Ref(1));
-                assert_eq!(counter.event.category, StringOrRef::Ref(2));
-                assert_eq!(counter.event.name, StringOrRef::Ref(3));
+                assert_eq!(counter.event.thread, ThreadRef::Ref(1));
+                assert_eq!(counter.event.category, StringRef::Ref(2));
+                assert_eq!(counter.event.name, StringRef::Ref(3));
                 assert_eq!(counter.counter_id, 42);
                 assert!(counter.event.arguments.is_empty());
             }
@@ -662,9 +669,9 @@ mod tests {
         match record {
             EventRecord::DurationBegin(begin) => {
                 assert_eq!(begin.event.timestamp, 2000000);
-                assert_eq!(begin.event.thread, ThreadOrRef::Ref(7));
-                assert_eq!(begin.event.category, StringOrRef::Ref(12));
-                assert_eq!(begin.event.name, StringOrRef::Ref(20));
+                assert_eq!(begin.event.thread, ThreadRef::Ref(7));
+                assert_eq!(begin.event.category, StringRef::Ref(12));
+                assert_eq!(begin.event.name, StringRef::Ref(20));
                 assert!(begin.event.arguments.is_empty());
             }
             _ => panic!("Expected DurationBegin event record"),
@@ -711,9 +718,9 @@ mod tests {
         match record {
             EventRecord::DurationEnd(end) => {
                 assert_eq!(end.event.timestamp, 3000000);
-                assert_eq!(end.event.thread, ThreadOrRef::Ref(7));
-                assert_eq!(end.event.category, StringOrRef::Ref(12));
-                assert_eq!(end.event.name, StringOrRef::Ref(20));
+                assert_eq!(end.event.thread, ThreadRef::Ref(7));
+                assert_eq!(end.event.category, StringRef::Ref(12));
+                assert_eq!(end.event.name, StringRef::Ref(20));
                 assert!(end.event.arguments.is_empty());
             }
             _ => panic!("Expected DurationEnd event record"),
@@ -763,9 +770,9 @@ mod tests {
         match record {
             EventRecord::DurationComplete(complete) => {
                 assert_eq!(complete.event.timestamp, 4000000);
-                assert_eq!(complete.event.thread, ThreadOrRef::Ref(8));
-                assert_eq!(complete.event.category, StringOrRef::Ref(15));
-                assert_eq!(complete.event.name, StringOrRef::Ref(22));
+                assert_eq!(complete.event.thread, ThreadRef::Ref(8));
+                assert_eq!(complete.event.category, StringRef::Ref(15));
+                assert_eq!(complete.event.name, StringRef::Ref(22));
                 assert_eq!(complete.end_ts, 500000);
                 assert!(complete.event.arguments.is_empty());
             }
@@ -860,10 +867,13 @@ mod tests {
                 assert_eq!(instant.event.timestamp, 1000000);
                 assert_eq!(
                     instant.event.thread,
-                    ThreadOrRef::ProcessAndThread(12345, 67890)
+                    ThreadRef::Inline {
+                        process_koid: 12345,
+                        thread_koid: 67890
+                    }
                 );
-                assert_eq!(instant.event.category, StringOrRef::Ref(2));
-                assert_eq!(instant.event.name, StringOrRef::Ref(3));
+                assert_eq!(instant.event.category, StringRef::Ref(2));
+                assert_eq!(instant.event.name, StringRef::Ref(3));
                 assert!(instant.event.arguments.is_empty());
             }
             _ => panic!("Expected Instant event record"),
@@ -913,12 +923,9 @@ mod tests {
         match record {
             EventRecord::Instant(instant) => {
                 assert_eq!(instant.event.timestamp, 1000000);
-                assert_eq!(instant.event.thread, ThreadOrRef::Ref(1));
-                assert_eq!(
-                    instant.event.category,
-                    StringOrRef::String("cat".to_string())
-                );
-                assert_eq!(instant.event.name, StringOrRef::Ref(3));
+                assert_eq!(instant.event.thread, ThreadRef::Ref(1));
+                assert_eq!(instant.event.category, StringRef::Inline("cat".to_string()));
+                assert_eq!(instant.event.name, StringRef::Ref(3));
                 assert!(instant.event.arguments.is_empty());
             }
             _ => panic!("Expected Instant event record"),
@@ -968,9 +975,9 @@ mod tests {
         match record {
             EventRecord::Instant(instant) => {
                 assert_eq!(instant.event.timestamp, 1000000);
-                assert_eq!(instant.event.thread, ThreadOrRef::Ref(1));
-                assert_eq!(instant.event.category, StringOrRef::Ref(2));
-                assert_eq!(instant.event.name, StringOrRef::String("test".to_string()));
+                assert_eq!(instant.event.thread, ThreadRef::Ref(1));
+                assert_eq!(instant.event.category, StringRef::Ref(2));
+                assert_eq!(instant.event.name, StringRef::Inline("test".to_string()));
                 assert!(instant.event.arguments.is_empty());
             }
             _ => panic!("Expected Instant event record"),
@@ -986,9 +993,9 @@ mod tests {
         // Create an instant event with reference thread, category, and name
         let event = Event {
             timestamp: 1000000,
-            thread: ThreadOrRef::Ref(5),
-            category: StringOrRef::Ref(10),
-            name: StringOrRef::Ref(15),
+            thread: ThreadRef::Ref(5),
+            category: StringRef::Ref(10),
+            name: StringRef::Ref(15),
             arguments: Vec::new(),
         };
 
@@ -1042,9 +1049,9 @@ mod tests {
         // Create a counter event
         let event = Event {
             timestamp: 1000000,
-            thread: ThreadOrRef::Ref(1),
-            category: StringOrRef::Ref(2),
-            name: StringOrRef::Ref(3),
+            thread: ThreadRef::Ref(1),
+            category: StringRef::Ref(2),
+            name: StringRef::Ref(3),
             arguments: Vec::new(),
         };
 
@@ -1084,9 +1091,9 @@ mod tests {
         // Create a duration begin event
         let event = Event {
             timestamp: 2000000,
-            thread: ThreadOrRef::Ref(7),
-            category: StringOrRef::Ref(12),
-            name: StringOrRef::Ref(20),
+            thread: ThreadRef::Ref(7),
+            category: StringRef::Ref(12),
+            name: StringRef::Ref(20),
             arguments: Vec::new(),
         };
 
@@ -1123,9 +1130,9 @@ mod tests {
         // Create a duration end event
         let event = Event {
             timestamp: 3000000,
-            thread: ThreadOrRef::Ref(7),
-            category: StringOrRef::Ref(12),
-            name: StringOrRef::Ref(20),
+            thread: ThreadRef::Ref(7),
+            category: StringRef::Ref(12),
+            name: StringRef::Ref(20),
             arguments: Vec::new(),
         };
 
@@ -1162,9 +1169,9 @@ mod tests {
         // Create a duration complete event
         let event = Event {
             timestamp: 4000000,
-            thread: ThreadOrRef::Ref(8),
-            category: StringOrRef::Ref(15),
-            name: StringOrRef::Ref(22),
+            thread: ThreadRef::Ref(8),
+            category: StringRef::Ref(15),
+            name: StringRef::Ref(22),
             arguments: Vec::new(),
         };
 
@@ -1204,9 +1211,12 @@ mod tests {
         // Create an event with inline thread
         let event = Event {
             timestamp: 1000000,
-            thread: ThreadOrRef::ProcessAndThread(12345, 67890),
-            category: StringOrRef::Ref(2),
-            name: StringOrRef::Ref(3),
+            thread: ThreadRef::Inline {
+                process_koid: 12345,
+                thread_koid: 67890,
+            },
+            category: StringRef::Ref(2),
+            name: StringRef::Ref(3),
             arguments: Vec::new(),
         };
 
@@ -1250,9 +1260,9 @@ mod tests {
         // Create an event with inline category
         let event = Event {
             timestamp: 1000000,
-            thread: ThreadOrRef::Ref(1),
-            category: StringOrRef::String("cat".to_string()),
-            name: StringOrRef::Ref(3),
+            thread: ThreadRef::Ref(1),
+            category: StringRef::Inline("cat".to_string()),
+            name: StringRef::Ref(3),
             arguments: Vec::new(),
         };
 
@@ -1292,9 +1302,9 @@ mod tests {
         // Create an event with inline name
         let event = Event {
             timestamp: 1000000,
-            thread: ThreadOrRef::Ref(1),
-            category: StringOrRef::Ref(2),
-            name: StringOrRef::String("test".to_string()),
+            thread: ThreadRef::Ref(1),
+            category: StringRef::Ref(2),
+            name: StringRef::Inline("test".to_string()),
             arguments: Vec::new(),
         };
 
@@ -1334,9 +1344,12 @@ mod tests {
         // Create an event with inline thread, category, and name
         let event = Event {
             timestamp: 5000000,
-            thread: ThreadOrRef::ProcessAndThread(98765, 43210),
-            category: StringOrRef::String("debug".to_string()),
-            name: StringOrRef::String("operation".to_string()),
+            thread: ThreadRef::Inline {
+                process_koid: 98765,
+                thread_koid: 43210,
+            },
+            category: StringRef::Inline("debug".to_string()),
+            name: StringRef::Inline("operation".to_string()),
             arguments: Vec::new(),
         };
 
@@ -1409,9 +1422,9 @@ mod tests {
         // Create an instant event with references
         let original_event = Event {
             timestamp: 1000000,
-            thread: ThreadOrRef::Ref(5),
-            category: StringOrRef::Ref(10),
-            name: StringOrRef::Ref(15),
+            thread: ThreadRef::Ref(5),
+            category: StringRef::Ref(10),
+            name: StringRef::Ref(15),
             arguments: Vec::new(),
         };
 
@@ -1431,9 +1444,9 @@ mod tests {
         match record {
             Record::Event(EventRecord::Instant(instant)) => {
                 assert_eq!(instant.event.timestamp, 1000000);
-                assert_eq!(instant.event.thread, ThreadOrRef::Ref(5));
-                assert_eq!(instant.event.category, StringOrRef::Ref(10));
-                assert_eq!(instant.event.name, StringOrRef::Ref(15));
+                assert_eq!(instant.event.thread, ThreadRef::Ref(5));
+                assert_eq!(instant.event.category, StringRef::Ref(10));
+                assert_eq!(instant.event.name, StringRef::Ref(15));
                 assert!(instant.event.arguments.is_empty());
             }
             _ => panic!("Expected Instant event record, got {:?}", record),
@@ -1447,9 +1460,9 @@ mod tests {
         // Create a counter event
         let original_event = Event {
             timestamp: 1000000,
-            thread: ThreadOrRef::Ref(1),
-            category: StringOrRef::Ref(2),
-            name: StringOrRef::Ref(3),
+            thread: ThreadRef::Ref(1),
+            category: StringRef::Ref(2),
+            name: StringRef::Ref(3),
             arguments: Vec::new(),
         };
 
@@ -1470,9 +1483,9 @@ mod tests {
         match record {
             Record::Event(EventRecord::Counter(counter)) => {
                 assert_eq!(counter.event.timestamp, 1000000);
-                assert_eq!(counter.event.thread, ThreadOrRef::Ref(1));
-                assert_eq!(counter.event.category, StringOrRef::Ref(2));
-                assert_eq!(counter.event.name, StringOrRef::Ref(3));
+                assert_eq!(counter.event.thread, ThreadRef::Ref(1));
+                assert_eq!(counter.event.category, StringRef::Ref(2));
+                assert_eq!(counter.event.name, StringRef::Ref(3));
                 assert_eq!(counter.counter_id, 42);
                 assert!(counter.event.arguments.is_empty());
             }
@@ -1487,9 +1500,9 @@ mod tests {
         // Create a duration complete event
         let original_event = Event {
             timestamp: 4000000,
-            thread: ThreadOrRef::Ref(8),
-            category: StringOrRef::Ref(15),
-            name: StringOrRef::Ref(22),
+            thread: ThreadRef::Ref(8),
+            category: StringRef::Ref(15),
+            name: StringRef::Ref(22),
             arguments: Vec::new(),
         };
 
@@ -1510,9 +1523,9 @@ mod tests {
         match record {
             Record::Event(EventRecord::DurationComplete(complete)) => {
                 assert_eq!(complete.event.timestamp, 4000000);
-                assert_eq!(complete.event.thread, ThreadOrRef::Ref(8));
-                assert_eq!(complete.event.category, StringOrRef::Ref(15));
-                assert_eq!(complete.event.name, StringOrRef::Ref(22));
+                assert_eq!(complete.event.thread, ThreadRef::Ref(8));
+                assert_eq!(complete.event.category, StringRef::Ref(15));
+                assert_eq!(complete.event.name, StringRef::Ref(22));
                 assert_eq!(complete.end_ts, 500000);
                 assert!(complete.event.arguments.is_empty());
             }
@@ -1527,9 +1540,12 @@ mod tests {
         // Create an event with all inline fields
         let original_event = Event {
             timestamp: 5000000,
-            thread: ThreadOrRef::ProcessAndThread(98765, 43210),
-            category: StringOrRef::String("debug".to_string()),
-            name: StringOrRef::String("operation".to_string()),
+            thread: ThreadRef::Inline {
+                process_koid: 98765,
+                thread_koid: 43210,
+            },
+            category: StringRef::Inline("debug".to_string()),
+            name: StringRef::Inline("operation".to_string()),
             arguments: Vec::new(),
         };
 
@@ -1551,15 +1567,18 @@ mod tests {
                 assert_eq!(instant.event.timestamp, 5000000);
                 assert_eq!(
                     instant.event.thread,
-                    ThreadOrRef::ProcessAndThread(98765, 43210)
+                    ThreadRef::Inline {
+                        process_koid: 98765,
+                        thread_koid: 43210
+                    }
                 );
                 assert_eq!(
                     instant.event.category,
-                    StringOrRef::String("debug".to_string())
+                    StringRef::Inline("debug".to_string())
                 );
                 assert_eq!(
                     instant.event.name,
-                    StringOrRef::String("operation".to_string())
+                    StringRef::Inline("operation".to_string())
                 );
                 assert!(instant.event.arguments.is_empty());
             }

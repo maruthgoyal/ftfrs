@@ -51,30 +51,30 @@ pub enum FtfError {
 pub type Result<T> = std::result::Result<T, FtfError>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum StringOrRef {
-    String(String),
+pub enum StringRef {
+    Inline(String),
     Ref(u16),
 }
 
-impl StringOrRef {
+impl StringRef {
     pub fn to_field(&self) -> u16 {
         match self {
-            StringOrRef::Ref(r) => *r & 0x7FFF,
-            StringOrRef::String(s) => (s.len() as u16) | 0x8000,
+            StringRef::Ref(r) => *r & 0x7FFF,
+            StringRef::Inline(s) => (s.len() as u16) | 0x8000,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ThreadOrRef {
-    ProcessAndThread(u64, u64),
+pub enum ThreadRef {
+    Inline { process_koid: u64, thread_koid: u64 },
     Ref(u8),
 }
 
-impl ThreadOrRef {
+impl ThreadRef {
     pub fn to_field(&self) -> u8 {
         match self {
-            Self::ProcessAndThread(_, _) => 0,
+            Self::Inline { .. } => 0,
             Self::Ref(r) => *r,
         }
     }
@@ -184,9 +184,9 @@ impl Record {
 
     pub fn create_instant_event(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
     ) -> Self {
         Self::Event(EventRecord::create_instant(
@@ -196,9 +196,9 @@ impl Record {
 
     pub fn create_counter_event(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
         counter_id: u64,
     ) -> Self {
@@ -209,9 +209,9 @@ impl Record {
 
     pub fn create_duration_begin_event(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
     ) -> Self {
         Self::Event(EventRecord::create_duration_begin(
@@ -221,9 +221,9 @@ impl Record {
 
     pub fn create_duration_end_event(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
     ) -> Self {
         Self::Event(EventRecord::create_duration_end(
@@ -233,9 +233,9 @@ impl Record {
 
     pub fn create_duration_complete_event(
         timestamp: u64,
-        thread: ThreadOrRef,
-        category: StringOrRef,
-        name: StringOrRef,
+        thread: ThreadRef,
+        category: StringRef,
+        name: StringRef,
         arguments: Vec<Argument>,
         end_ts: u64,
     ) -> Self {
@@ -302,9 +302,9 @@ mod tests {
     fn create_instant_event() -> Record {
         Record::create_instant_event(
             100,
-            ThreadOrRef::Ref(1),
-            StringOrRef::String("category".to_string()),
-            StringOrRef::String("event_name".to_string()),
+            ThreadRef::Ref(1),
+            StringRef::Inline("category".to_string()),
+            StringRef::Inline("event_name".to_string()),
             Vec::new(),
         )
     }
