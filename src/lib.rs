@@ -149,7 +149,7 @@ impl Record {
     }
 
     pub fn create_string(index: u16, value: String) -> Self {
-        Self::String(StringRecord::new(index,  value))
+        Self::String(StringRecord::new(index, value))
     }
 
     pub fn create_thread(index: u8, process_koid: u64, thread_koid: u64) -> Self {

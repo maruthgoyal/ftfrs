@@ -1,5 +1,5 @@
 use crate::header::CustomField;
-use crate::wordutils::{self, pad_to_multiple_of_8};
+use crate::wordutils::{self, pad_and_write_string, pad_to_multiple_of_8};
 use crate::{extract_bits, RecordHeader, Result};
 use std::io::{Read, Write};
 
@@ -11,10 +11,7 @@ pub struct StringRecord {
 
 impl StringRecord {
     pub fn new(index: u16, value: String) -> Self {
-        Self {
-            index,
-            value,
-        }
+        Self { index, value }
     }
 
     pub fn index(&self) -> u16 {
@@ -34,10 +31,7 @@ impl StringRecord {
         let length = extract_bits!(header.value, 32, 46) as u32;
 
         let value = wordutils::read_aligned_str(reader, length as usize)?;
-        Ok(StringRecord {
-            index,
-            value,
-        })
+        Ok(StringRecord { index, value })
     }
 
     pub(super) fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
@@ -62,8 +56,7 @@ impl StringRecord {
 
         writer.write_all(&header.value.to_le_bytes())?;
 
-        let padded = pad_to_multiple_of_8(str_bytes);
-        writer.write_all(&padded)?;
+        pad_and_write_string(writer, &self.value)?;
 
         Ok(())
     }

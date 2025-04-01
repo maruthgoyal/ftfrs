@@ -1,5 +1,5 @@
 use crate::header::CustomField;
-use crate::wordutils::pad_to_multiple_of_8;
+use crate::wordutils::{pad_and_write_string, pad_to_multiple_of_8};
 use crate::{FtfError, Result};
 use std::io::{Read, Write};
 use thiserror::Error;
@@ -157,13 +157,11 @@ impl Event {
         }
 
         if let StringRef::Inline(s) = &self.category {
-            let padded = pad_to_multiple_of_8(s.as_bytes());
-            writer.write_all(&padded)?;
+            pad_and_write_string(writer, s)?;
         }
 
         if let StringRef::Inline(s) = &self.name {
-            let padded = pad_to_multiple_of_8(s.as_bytes());
-            writer.write_all(&padded)?;
+            pad_and_write_string(writer, s)?;
         }
 
         // arguments should go here
@@ -202,8 +200,7 @@ impl Instant {
     }
 
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
-        self.event
-            .write_event(writer, EventType::Instant, None)
+        self.event.write_event(writer, EventType::Instant, None)
     }
 }
 
@@ -298,8 +295,7 @@ impl DurationEnd {
     }
 
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
-        self.event
-            .write_event(writer, EventType::DurationEnd, None)
+        self.event.write_event(writer, EventType::DurationEnd, None)
     }
 }
 

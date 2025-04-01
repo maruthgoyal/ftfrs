@@ -1,5 +1,5 @@
 use crate::Result;
-use std::io::Read;
+use std::io::{Read, Write};
 
 pub fn read_u64_word<U: Read>(reader: &mut U) -> Result<u64> {
     let mut buf = [0; 8];
@@ -18,6 +18,19 @@ pub fn read_aligned_str<U: Read>(reader: &mut U, len: usize) -> Result<String> {
         let res = buf[0..len].to_vec();
         Ok(String::from_utf8(res)?)
     }
+}
+
+pub fn pad_and_write_string<W: Write>(writer: &mut W, input: &str) -> Result<()> {
+    let bytes = input.as_bytes();
+    writer.write_all(bytes)?;
+
+    let remainder = bytes.len() % 8;
+    if remainder != 0 {
+        let num_zeros = 8 - remainder;
+        let zeros = vec![0_u8; num_zeros];
+        writer.write_all(&zeros)?;
+    }
+    Ok(())
 }
 
 pub fn pad_to_multiple_of_8(input: &[u8]) -> Vec<u8> {

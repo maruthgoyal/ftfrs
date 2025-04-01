@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::{
     extract_bits,
     header::CustomField,
-    wordutils::{self, pad_to_multiple_of_8},
+    wordutils::{self, pad_and_write_string, pad_to_multiple_of_8},
     RecordHeader, Result,
 };
 
@@ -102,8 +102,7 @@ impl ProviderInfo {
 
         writer.write_all(&header.value.to_le_bytes())?;
 
-        let padded = pad_to_multiple_of_8(self.provider_name.as_bytes());
-        writer.write_all(&padded)?;
+        pad_and_write_string(writer, &self.provider_name)?;
 
         Ok(())
     }

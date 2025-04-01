@@ -3,7 +3,7 @@ use thiserror::Error;
 
 use crate::{
     extract_bits,
-    wordutils::{pad_to_multiple_of_8, read_aligned_str, read_u64_word},
+    wordutils::{pad_and_write_string, pad_to_multiple_of_8, read_aligned_str, read_u64_word},
     Result, StringRef,
 };
 
@@ -135,8 +135,7 @@ impl Argument {
         writer.write_all(&header.to_ne_bytes())?;
 
         if let StringRef::Inline(s) = arg_name {
-            let padded = pad_to_multiple_of_8(s.as_bytes());
-            writer.write_all(&padded)?;
+            pad_and_write_string(writer, s)?;
         }
 
         Ok(())
@@ -221,8 +220,7 @@ impl Argument {
             Argument::Str(_, val) => {
                 self.write_header_and_name(writer, val.to_field() as u32)?;
                 if let StringRef::Inline(s) = val {
-                    let padded = pad_to_multiple_of_8(s.as_bytes());
-                    writer.write_all(&padded)?;
+                    pad_and_write_string(writer, s)?;
                 }
                 Ok(())
             }
