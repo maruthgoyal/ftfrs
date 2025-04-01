@@ -1,5 +1,5 @@
 use crate::header::CustomField;
-use crate::wordutils::{self, pad_and_write_string, pad_to_multiple_of_8};
+use crate::wordutils::{self, pad_and_write_string};
 use crate::{extract_bits, RecordHeader, Result};
 use std::io::{Read, Write};
 

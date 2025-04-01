@@ -1,5 +1,5 @@
 use crate::header::CustomField;
-use crate::wordutils::{pad_and_write_string, pad_to_multiple_of_8};
+use crate::wordutils::pad_and_write_string;
 use crate::{FtfError, Result};
 use std::io::{Read, Write};
 use thiserror::Error;
