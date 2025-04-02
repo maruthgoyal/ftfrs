@@ -93,7 +93,7 @@ pub fn create_mixed_archive(num_events: usize, interned_pct: usize) -> Archive {
 pub fn bench_read(c: &mut Criterion) {
     let mut group = c.benchmark_group("archive_read");
     
-    for events in [10, 100, 1_000, 10_000].iter() {
+    for events in [10, 100, 1_000, 10_000, 100_000, 1_000_000].iter() {
         let buffer = generate_sample_trace(*events, 50);
         
         group.bench_with_input(BenchmarkId::from_parameter(events), &buffer, |b, buffer| {
@@ -112,7 +112,7 @@ pub fn bench_read(c: &mut Criterion) {
 pub fn bench_write(c: &mut Criterion) {
     let mut group = c.benchmark_group("archive_write");
     
-    for events in [10, 100, 1_000, 10_000].iter() {
+    for events in [10, 100, 1_000, 10_000, 100_000, 1_000_000].iter() {
         let archive = create_mixed_archive(*events, 50);
         
         group.bench_with_input(BenchmarkId::from_parameter(events), events, |b, _| {
