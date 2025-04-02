@@ -1,6 +1,5 @@
 /// Macro to extract bits from position i to j (inclusive, 0-indexed) from a u64
 /// Both i and j must be literals between 0 and 63, with i <= j
-#[macro_export]
 macro_rules! extract_bits {
     ($value:expr, $i:literal, $j:literal) => {{
         // Compile-time checks
@@ -19,12 +18,14 @@ macro_rules! extract_bits {
     }};
 }
 
-#[macro_export]
 macro_rules! mask_length {
     ($value:expr, $i:expr) => {
         (($value) & (1u64 << ($i)) - 1)
     };
 }
+
+pub(crate) use extract_bits;
+pub(crate) use mask_length;
 
 #[cfg(test)]
 mod tests {

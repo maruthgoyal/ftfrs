@@ -11,6 +11,7 @@ mod wordutils;
 pub use crate::argument::Argument;
 
 use argument::ArgumentTypeParseError;
+use bitutils::{extract_bits, mask_length};
 use event::{EventRecord, EventTypeParseError};
 use header::{RecordHeader, RecordType, RecordTypeParseError};
 use initialization::InitializationRecord;
