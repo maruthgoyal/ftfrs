@@ -1,6 +1,6 @@
 [package]
 name = "ftfrs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Read and write Fuchsia Trace Format (FTF) traces with Rust"
 repository = "https://github.com/maruthgoyal/ftfrs"
