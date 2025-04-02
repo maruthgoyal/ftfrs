@@ -241,6 +241,42 @@ let args = vec![
 ];
 ```
 
+## Benchmarks 📊
+
+The library includes comprehensive benchmarks to measure performance of various operations:
+
+```bash
+# Run all benchmarks
+cargo bench
+
+# Run a specific benchmark group
+cargo bench -- string_handling
+
+# Run a specific benchmark
+cargo bench -- archive_read/10
+```
+
+Key benchmarking categories:
+
+1. **Read Performance**
+   - Reading archives of various sizes
+   - Parsing individual record types
+
+2. **Write Performance**
+   - Writing archives of various sizes
+   - Creating and writing span events
+
+3. **String Handling Performance**
+   - Comparing inline strings vs. string references
+   - Performance with different string sizes
+
+4. **Mixed Workloads**
+   - Different ratios of interned vs. inline strings
+   - Performance with varying numbers of arguments
+   - Overall throughput (events per second)
+
+Benchmark results help identify performance characteristics and guide optimization decisions.
+
 ## Example Tool 🛠️
 
 The repository includes an example tool that demonstrates reading and writing trace files.
@@ -267,7 +303,7 @@ The following items are planned for future development:
 
 - ✅ Argument support for events (completed!)
 - 🔄 Performance optimizations:
-  - Add benchmarks
+  - ✅ Add benchmarks (completed!)
   - Memory usage improvements (in-memory layout mirroring disk format to reduce memory footprint)
   - Write optimizations (avoid unnecessary string copies for padding)
 - 🔮 Support for remaining record types:

@@ -15,6 +15,13 @@ anyhow = "1.0.97"
 log = "0.4.27"
 thiserror = "2.0.12"
 
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["html_reports"] }
+
 [[example]]
 name = "trace_tool"
 path = "examples/trace_tool.rs"
+
+[[bench]]
+name = "bench_main"
+harness = false
