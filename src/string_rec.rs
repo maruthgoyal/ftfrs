@@ -41,7 +41,7 @@ impl StringRecord {
         let header = RecordHeader::build(
             crate::header::RecordType::String,
             num_words as u8,
-            vec![
+            &[
                 CustomField {
                     width: 15,
                     value: self.index as u64,

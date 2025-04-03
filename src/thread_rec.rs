@@ -46,7 +46,7 @@ impl ThreadRecord {
         let header = RecordHeader::build(
             crate::header::RecordType::Thread,
             3,
-            vec![CustomField {
+            &[CustomField {
                 width: 8,
                 value: self.index as u64,
             }],

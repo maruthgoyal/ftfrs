@@ -33,7 +33,7 @@ impl TraceInfo {
         let header = RecordHeader::build(
             crate::header::RecordType::Metadata,
             1,
-            vec![
+            &vec![
                 CustomField {
                     width: 4,
                     value: MetadataType::TraceInfo as u64,
@@ -84,7 +84,7 @@ impl ProviderInfo {
         let header = RecordHeader::build(
             crate::header::RecordType::Metadata,
             size as u8,
-            vec![
+            &[
                 CustomField {
                     width: 4,
                     value: MetadataType::ProviderInfo as u64,
@@ -125,7 +125,7 @@ impl ProviderSection {
         let header = RecordHeader::build(
             crate::header::RecordType::Metadata,
             1,
-            vec![
+            &[
                 CustomField {
                     width: 4,
                     value: MetadataType::ProviderSection as u64,
@@ -168,7 +168,7 @@ impl ProviderEvent {
         let header = RecordHeader::build(
             crate::header::RecordType::Metadata,
             1,
-            vec![
+            &[
                 CustomField {
                     width: 4,
                     value: MetadataType::ProviderEvent as u64,

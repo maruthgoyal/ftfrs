@@ -55,7 +55,7 @@ impl RecordHeader {
     pub(super) fn build(
         record_type: RecordType,
         record_size: u8,
-        fields: Vec<CustomField>,
+        fields: &[CustomField],
     ) -> Result<Self> {
         let record_type = record_type as u8;
         let mut res: u64 = 0;

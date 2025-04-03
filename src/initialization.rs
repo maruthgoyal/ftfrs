@@ -22,7 +22,7 @@ impl InitializationRecord {
     }
 
     pub(super) fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
-        let header = RecordHeader::build(crate::header::RecordType::Initialization, 2, Vec::new())?;
+        let header = RecordHeader::build(crate::header::RecordType::Initialization, 2, &[])?;
         writer.write_all(&header.value.to_le_bytes())?;
         writer.write_all(&self.ticks_per_second.to_le_bytes())?;
         Ok(())
