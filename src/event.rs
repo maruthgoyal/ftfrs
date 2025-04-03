@@ -119,7 +119,7 @@ impl Event {
 
         let header = RecordHeader::build(
             crate::header::RecordType::Event,
-            num_words as u8 + event_extra_word.is_some() as u8,
+            num_words + event_extra_word.is_some() as u8,
             &[
                 CustomField {
                     width: 4,

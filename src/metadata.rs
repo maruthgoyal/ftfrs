@@ -33,7 +33,7 @@ impl TraceInfo {
         let header = RecordHeader::build(
             crate::header::RecordType::Metadata,
             1,
-            &vec![
+            &[
                 CustomField {
                     width: 4,
                     value: MetadataType::TraceInfo as u64,
@@ -79,7 +79,7 @@ impl ProviderInfo {
 
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         let str_bytes = self.provider_name.as_bytes();
-        let size = 1 + (str_bytes.len() + 7) / 8;
+        let size = 1 + str_bytes.len().div_ceil(8);
 
         let header = RecordHeader::build(
             crate::header::RecordType::Metadata,

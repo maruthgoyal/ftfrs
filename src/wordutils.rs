@@ -7,7 +7,7 @@ pub fn read_u64_word<U: Read>(reader: &mut U) -> Result<u64> {
     Ok(u64::from_ne_bytes(buf))
 }
 pub fn read_aligned_str<U: Read>(reader: &mut U, len: usize) -> Result<String> {
-    let bytes_to_read = ((len + 7) / 8) * 8;
+    let bytes_to_read = len.div_ceil(8) * 8;
     let mut buf = vec![0; bytes_to_read];
     reader.read_exact(&mut buf)?;
 
@@ -41,7 +41,7 @@ pub fn pad_and_write_string<W: Write>(writer: &mut W, input: &str) -> Result<()>
     if remainder != 0 {
         let num_zeros = 8 - remainder;
         let zeros = get_zero_vec(num_zeros as u8);
-        writer.write_all(&zeros)?;
+        writer.write_all(zeros)?;
     }
     Ok(())
 }
