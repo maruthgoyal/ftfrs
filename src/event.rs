@@ -117,31 +117,13 @@ impl Event {
             num_words += arg.encoding_num_words();
         }
 
-        let header = RecordHeader::build(
-            crate::header::RecordType::Event,
+        let header = RecordHeader::build_event_header(
             num_words + event_extra_word.is_some() as u8,
-            &[
-                CustomField {
-                    width: 4,
-                    value: event_type as u64,
-                },
-                CustomField {
-                    width: 4,
-                    value: self.arguments.len() as u64,
-                },
-                CustomField {
-                    width: 8,
-                    value: self.thread.to_field() as u64,
-                },
-                CustomField {
-                    width: 16,
-                    value: self.category.to_field() as u64,
-                },
-                CustomField {
-                    width: 16,
-                    value: self.name.to_field() as u64,
-                },
-            ],
+                    event_type,
+                     self.arguments.len(),
+                    self.thread.to_field(),
+                     self.category.to_field(),
+                    self.name.to_field(),
         )?;
 
         writer.write_all(&header.value.to_le_bytes())?;

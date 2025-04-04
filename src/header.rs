@@ -1,4 +1,4 @@
-use crate::{extract_bits, mask_length, Result};
+use crate::{event::EventType, extract_bits, mask_length, Result};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -52,6 +52,27 @@ pub(super) struct RecordHeader {
 }
 
 impl RecordHeader {
+    pub(super) fn build_event_header(
+        record_size: u8,
+        event_type: EventType,
+        nargs: usize,
+        tid: u8,
+        cid: u16,
+        nid: u16
+    ) -> Result<Self> {
+        let mut res: u64 = 0;
+
+        res |= RecordType::Event as u64;
+        res |= (record_size as u64) << 4;
+        res |= mask_length!(event_type as u64, 4) << 16;
+        res |= mask_length!(nargs as u64, 4) << 20;
+        res |= mask_length!(tid as u64, 8) << 24;
+        res |= mask_length!(cid as u64, 16) << 32;
+        res |= mask_length!(nid as u64, 16) << 48;
+
+        Ok(Self { value: res })
+    }
+
     pub(super) fn build(
         record_type: RecordType,
         record_size: u8,
