@@ -65,15 +65,14 @@ pub enum StringRef {
 }
 
 impl StringRef {
-    pub fn to_field(&self) -> u16 {
+    fn to_field(&self) -> u16 {
         match self {
             StringRef::Ref(r) => *r & 0x7FFF,
             StringRef::Inline(s) => (s.len() as u16) | 0x8000,
         }
     }
 
-    pub fn field_is_ref(field: u16) -> bool {
-        // test high bit is not set
+    fn field_is_ref(field: u16) -> bool {
         (field & 0x8000) == 0
     }
 
@@ -92,7 +91,7 @@ pub enum ThreadRef {
 }
 
 impl ThreadRef {
-    pub fn to_field(&self) -> u8 {
+    fn to_field(&self) -> u8 {
         match self {
             Self::Inline { .. } => 0,
             Self::Ref(r) => *r,
@@ -120,6 +119,27 @@ pub struct Archive {
 }
 
 impl Archive {
+    /// Read a trace from a file, or other readable object.
+    /// Reads the object till EOF.
+    /// ```
+    /// use std::fs::File;
+    /// use std::io::BufReader;
+    /// fn main() -> Result<()> {
+    /// // Open the trace file
+    /// let file = File::open("trace.ftf")?;
+    /// let reader = BufReader::new(file);
+
+    /// // Parse the trace archive
+    /// let archive = Archive::read(reader)?;
+
+    /// // Process the records in the archive
+    /// for (i, record) in archive.records.iter().enumerate() {
+    ///  println!("Record {}: {:?}", i, record);
+    /// }
+    /// Ok(())
+    /// }
+    ///
+    /// ```
     pub fn read<R: Read>(mut reader: R) -> Result<Self> {
         let mut res = Vec::new();
         loop {
@@ -149,18 +169,18 @@ impl Record {
         Self::Initialization(InitializationRecord::new(ticks_per_second))
     }
 
-    pub fn create_string(index: u16, value: String) -> Self {
-        Self::String(StringRecord::new(index, value))
+    pub fn create_string<S: Into<String>>(index: u16, value: S) -> Self {
+        Self::String(StringRecord::new(index, value.into()))
     }
 
     pub fn create_thread(index: u8, process_koid: u64, thread_koid: u64) -> Self {
         Self::Thread(ThreadRecord::new(index, process_koid, thread_koid))
     }
 
-    pub fn create_provider_info(provider_id: u32, provider_name: String) -> Self {
+    pub fn create_provider_info<S: Into<String>>(provider_id: u32, provider_name: S) -> Self {
         Self::Metadata(MetadataRecord::ProviderInfo(ProviderInfo::new(
             provider_id,
-            provider_name,
+            provider_name.into(),
         )))
     }
 

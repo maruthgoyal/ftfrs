@@ -31,10 +31,6 @@
 - Strings can be inline or references
 - Inline strings are stored directly in the record
 - String references point to a string record
-- Inline string flag is set with bit 0x1000
+- Inline string references have the high bit set
 - Strings must be padded to multiples of 8 bytes
 
-## Known Issues
-- String padding issue: Strings just over multiples of 8 bytes may be truncated
-  - Example: "operation" (9 bytes) gets truncated to "operatio" (8 bytes)
-  - Related test: `test_event_record_write_with_multiple_inline_fields`
