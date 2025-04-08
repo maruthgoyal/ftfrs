@@ -47,7 +47,7 @@ pub(super) struct CustomField {
     pub width: u8,
     pub value: u64,
 }
-pub(super) struct RecordHeader {
+pub struct RecordHeader {
     pub value: u64,
 }
 

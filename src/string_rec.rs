@@ -1,3 +1,5 @@
+use log::Record;
+
 use crate::header::CustomField;
 use crate::wordutils::{self, pad_and_write_string};
 use crate::{extract_bits, RecordHeader, Result};
@@ -24,6 +26,10 @@ impl StringRecord {
 
     pub fn value(&self) -> &String {
         &self.value
+    }
+
+    pub fn index_from_header(header: &RecordHeader) -> u16 {
+        extract_bits!(header.value, 16, 30) as u16 
     }
 
     pub(super) fn parse<U: Read>(reader: &mut U, header: RecordHeader) -> Result<Self> {

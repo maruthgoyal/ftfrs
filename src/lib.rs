@@ -12,13 +12,15 @@ pub use crate::argument::Argument;
 
 use argument::ArgumentTypeParseError;
 use bitutils::{extract_bits, mask_length};
-use event::{EventRecord, EventTypeParseError};
-use header::{RecordHeader, RecordType, RecordTypeParseError};
+pub use event::{EventRecord, Event};
+use event::EventTypeParseError;
+pub use header::{RecordHeader, RecordType};
+use header::RecordTypeParseError;
 use initialization::InitializationRecord;
 use metadata::{
     MetadataRecord, MetadataTypeParseError, ProviderEvent, ProviderInfo, ProviderSection, TraceInfo,
 };
-use string_rec::StringRecord;
+pub use string_rec::StringRecord;
 use thread_rec::ThreadRecord;
 use wordutils::read_u64_word;
 

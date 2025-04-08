@@ -156,7 +156,7 @@ impl Argument {
         }
     }
 
-    fn name(&self) -> &StringRef {
+    pub fn name(&self) -> &StringRef {
         match self {
             Argument::Null(s) => s,
             Argument::Int32(s, _) => s,
