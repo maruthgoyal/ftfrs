@@ -12,10 +12,10 @@ pub use crate::argument::Argument;
 
 use argument::ArgumentTypeParseError;
 use bitutils::{extract_bits, mask_length};
-pub use event::{EventRecord, Event};
 use event::EventTypeParseError;
-pub use header::{RecordHeader, RecordType};
+pub use event::{Event, EventRecord};
 use header::RecordTypeParseError;
+pub use header::{RecordHeader, RecordType};
 use initialization::InitializationRecord;
 use metadata::{
     MetadataRecord, MetadataTypeParseError, ProviderEvent, ProviderInfo, ProviderSection, TraceInfo,

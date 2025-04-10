@@ -58,7 +58,7 @@ impl RecordHeader {
         nargs: usize,
         tid: u8,
         cid: u16,
-        nid: u16
+        nid: u16,
     ) -> Result<Self> {
         let mut res: u64 = 0;
 

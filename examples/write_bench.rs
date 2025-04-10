@@ -1,4 +1,7 @@
-use std::{io::{Cursor, Write}, time::Instant};
+use std::{
+    io::{Cursor, Write},
+    time::Instant,
+};
 
 fn main() {
     let n = 100_000_000;

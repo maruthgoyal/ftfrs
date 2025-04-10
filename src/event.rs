@@ -119,11 +119,11 @@ impl Event {
 
         let header = RecordHeader::build_event_header(
             num_words + event_extra_word.is_some() as u8,
-                    event_type,
-                     self.arguments.len(),
-                    self.thread.to_field(),
-                     self.category.to_field(),
-                    self.name.to_field(),
+            event_type,
+            self.arguments.len(),
+            self.thread.to_field(),
+            self.category.to_field(),
+            self.name.to_field(),
         )?;
 
         writer.write_all(&header.value.to_le_bytes())?;

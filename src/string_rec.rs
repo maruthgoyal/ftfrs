@@ -29,7 +29,7 @@ impl StringRecord {
     }
 
     pub fn index_from_header(header: &RecordHeader) -> u16 {
-        extract_bits!(header.value, 16, 30) as u16 
+        extract_bits!(header.value, 16, 30) as u16
     }
 
     pub(super) fn parse<U: Read>(reader: &mut U, header: RecordHeader) -> Result<Self> {
