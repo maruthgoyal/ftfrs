@@ -17,15 +17,14 @@ pub use crate::argument::Argument;
 use argument::ArgumentTypeParseError;
 use bitutils::{extract_bits, mask_length};
 use event::EventTypeParseError;
-pub use event::{Event, EventRecord};
+pub use event::{Counter, DurationBegin, DurationComplete, DurationEnd, EventRecord, Instant};
 use header::RecordTypeParseError;
 pub use header::{RecordHeader, RecordType};
-use initialization::InitializationRecord;
-use metadata::{
-    MetadataRecord, MetadataTypeParseError, ProviderEvent, ProviderInfo, ProviderSection, TraceInfo,
-};
+pub use initialization::InitializationRecord;
+use metadata::MetadataTypeParseError;
+pub use metadata::{MetadataRecord, ProviderEvent, ProviderInfo, ProviderSection, TraceInfo};
 pub use string_rec::StringRecord;
-use thread_rec::ThreadRecord;
+pub use thread_rec::ThreadRecord;
 use wordutils::read_u64_word;
 
 use std::io::{ErrorKind, Read, Write};

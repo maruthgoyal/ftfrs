@@ -1,6 +1,9 @@
 use crate::{extract_bits, header::CustomField, wordutils::read_u64_word, RecordHeader, Result};
 use std::io::{Read, Write};
 
+/// Thread record. Represents a Thread interned
+/// in the provider's thread table with the assosciated
+/// index
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ThreadRecord {
     index: u8,
@@ -9,7 +12,7 @@ pub struct ThreadRecord {
 }
 
 impl ThreadRecord {
-    pub fn new(index: u8, process_koid: u64, thread_koid: u64) -> Self {
+    pub(crate) fn new(index: u8, process_koid: u64, thread_koid: u64) -> Self {
         ThreadRecord {
             index,
             process_koid,
@@ -17,14 +20,17 @@ impl ThreadRecord {
         }
     }
 
+    /// Index of the thread in the provider's thread table
     pub fn index(&self) -> u8 {
         self.index
     }
 
+    /// Process ID
     pub fn process_koid(&self) -> u64 {
         self.process_koid
     }
 
+    /// Thread ID
     pub fn thread_koid(&self) -> u64 {
         self.thread_koid
     }

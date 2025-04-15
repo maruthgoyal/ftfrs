@@ -7,17 +7,29 @@ use crate::{
     Result, StringRef,
 };
 
+/// Arguments for Events and other records
+/// Each argument (except Null) has a name and a value
 #[derive(Debug, Clone, PartialEq)]
 pub enum Argument {
+    /// Null argument
     Null(StringRef),
+    /// Int32 argument
     Int32(StringRef, i32),
+    /// UInt32 argument
     UInt32(StringRef, u32),
+    /// Int64 argument
     Int64(StringRef, i64),
+    /// UInt64 argument
     UInt64(StringRef, u64),
+    /// Double-precision floating point argument
     Float(StringRef, f64),
+    /// String argument (name, value)
     Str(StringRef, StringRef),
+    /// Pointer argument
     Pointer(StringRef, u64),
+    /// Kernel object argument
     KernelObjectId(StringRef, u64),
+    /// Boolean argument
     Boolean(StringRef, bool),
 }
 
@@ -156,6 +168,7 @@ impl Argument {
         }
     }
 
+    /// Name of the argument
     pub fn name(&self) -> &StringRef {
         match self {
             Argument::Null(s) => s,

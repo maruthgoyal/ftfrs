@@ -1,19 +1,31 @@
 use crate::{event::EventType, extract_bits, mask_length, Result};
 use thiserror::Error;
 
+/// Type of a record
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum RecordType {
+    /// Metadata record
     Metadata = 0,
+    /// Initialization record
     Initialization = 1,
+    /// String record
     String = 2,
+    /// Thread record
     Thread = 3,
+    /// Event record
     Event = 4,
+    /// BLOB record
     Blob = 5,
+    /// Userspace record
     Userspace = 6,
+    /// Kernel record
     Kernel = 7,
+    /// Scheduling record
     Scheduling = 8,
+    /// Log record
     Log = 9,
+    /// Large BLOB record
     LargeBlob = 15,
 }
 
@@ -47,8 +59,10 @@ pub(super) struct CustomField {
     pub width: u8,
     pub value: u64,
 }
+
+/// Header for a record
 pub struct RecordHeader {
-    pub value: u64,
+    pub(crate) value: u64,
 }
 
 impl RecordHeader {
@@ -93,11 +107,19 @@ impl RecordHeader {
         Ok(Self { value: res })
     }
 
-    #[allow(dead_code)]
+    /// Create a RecordHeader
+    /// * value: 8-byte header for a record
+    pub fn new(value: u64) -> Self {
+        Self { value }
+    }
+
+    /// Returns the size of the record described by this header
+    /// as a multiple of 8-bytes. i.e., size of 2 means the record is 16-bytes long
     pub fn size(&self) -> u16 {
         extract_bits!(self.value, 4, 15) as u16
     }
 
+    /// Type of the record described by this header
     pub fn record_type(&self) -> Result<RecordType> {
         Ok(RecordType::try_from(extract_bits!(self.value, 0, 3) as u8)?)
     }

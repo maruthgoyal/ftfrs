@@ -1,10 +1,11 @@
-use log::Record;
-
 use crate::header::CustomField;
 use crate::wordutils::{self, pad_and_write_string};
 use crate::{extract_bits, RecordHeader, Result};
 use std::io::{Read, Write};
 
+/// String record. Represents a String interned
+/// in the provider's string table with the assosciated
+/// index
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StringRecord {
     index: u16,
@@ -12,24 +13,23 @@ pub struct StringRecord {
 }
 
 impl StringRecord {
-    pub fn new(index: u16, value: String) -> Self {
+    pub(crate) fn new(index: u16, value: String) -> Self {
         Self { index, value }
     }
 
+    /// Index into the provider's string table
     pub fn index(&self) -> u16 {
         self.index
     }
 
+    /// Length of the assosciated string
     pub fn length(&self) -> u32 {
         self.value.len() as u32
     }
 
+    /// Reference to the string
     pub fn value(&self) -> &String {
         &self.value
-    }
-
-    pub fn index_from_header(header: &RecordHeader) -> u16 {
-        extract_bits!(header.value, 16, 30) as u16
     }
 
     pub(super) fn parse<U: Read>(reader: &mut U, header: RecordHeader) -> Result<Self> {

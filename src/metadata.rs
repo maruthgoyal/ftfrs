@@ -8,6 +8,7 @@ use crate::{
     RecordHeader, Result,
 };
 
+/// Represents information about the entire trace
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TraceInfo {
     trace_info_type: u8,
@@ -16,7 +17,7 @@ pub struct TraceInfo {
 }
 
 impl TraceInfo {
-    pub fn new(trace_info_type: u8, data: &[u8; 5]) -> Self {
+    pub(crate) fn new(trace_info_type: u8, data: &[u8; 5]) -> Self {
         let mut tmp = [0_u8; 8];
         tmp[3] = data[0];
         tmp[4] = data[1];
@@ -55,6 +56,10 @@ impl TraceInfo {
     }
 }
 
+/// Register a trace Provider which can be referred to
+/// by future ProviderSection and ProviderEvent records.
+/// A single Provider can have many threads and processes.
+/// Each Provider has its own String and Thread tables.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProviderInfo {
     provider_id: u32,
@@ -62,17 +67,19 @@ pub struct ProviderInfo {
 }
 
 impl ProviderInfo {
-    pub fn new(provider_id: u32, provider_name: String) -> Self {
+    pub(crate) fn new(provider_id: u32, provider_name: String) -> Self {
         Self {
             provider_id,
             provider_name,
         }
     }
 
+    /// ID of the provider
     pub fn provider_id(&self) -> u32 {
         self.provider_id
     }
 
+    /// Name of the provider
     pub fn provider_name(&self) -> &String {
         &self.provider_name
     }
@@ -108,15 +115,18 @@ impl ProviderInfo {
     }
 }
 
+/// All records processed after a ProviderSection are
+/// considered to be produced by the assosciated Provider.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ProviderSection {
     provider_id: u32,
 }
 impl ProviderSection {
-    pub fn new(provider_id: u32) -> Self {
+    pub(crate) fn new(provider_id: u32) -> Self {
         Self { provider_id }
     }
 
+    /// ID of the provider
     pub fn provider_id(&self) -> u32 {
         self.provider_id
     }
@@ -142,6 +152,8 @@ impl ProviderSection {
     }
 }
 
+/// Event assosciated with a particular Provider
+/// eg: missing records due to a buffer overflow
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ProviderEvent {
     provider_id: u32,
@@ -149,17 +161,20 @@ pub struct ProviderEvent {
 }
 
 impl ProviderEvent {
-    pub fn new(provider_id: u32, event_id: u8) -> Self {
+    pub(crate) fn new(provider_id: u32, event_id: u8) -> Self {
         Self {
             provider_id,
             event_id,
         }
     }
 
+    /// ID of the provider
     pub fn provider_id(&self) -> u32 {
         self.provider_id
     }
 
+    /// ID for the event
+    /// 0: records may be missing
     pub fn event_id(&self) -> u8 {
         self.event_id
     }
@@ -216,6 +231,9 @@ impl TryFrom<u8> for MetadataType {
     type Error = MetadataTypeParseError;
 }
 
+/// Metadata records, provide information about
+/// trace providers, and mark the beginning of a
+/// trace
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MetadataRecord {
     ProviderInfo(ProviderInfo),
@@ -226,6 +244,8 @@ pub enum MetadataRecord {
 }
 
 impl MetadataRecord {
+    /// The 8-byte value representing the magic number record
+    /// which demarcates the start of a trace
     pub const MAGIC_NUMBER_RECORD: u64 = 0x0016547846040010;
 
     fn metadata_type(header: &RecordHeader) -> Result<MetadataType> {

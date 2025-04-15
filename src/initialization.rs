@@ -1,16 +1,20 @@
+#![warn(missing_docs)]
 use crate::{header::RecordHeader, wordutils::read_u64_word, Result};
 use std::io::{Read, Write};
 
+/// Initialization record
+/// Specifies number of ticks per second in this trace
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InitializationRecord {
     ticks_per_second: u64,
 }
 
 impl InitializationRecord {
-    pub fn new(ticks_per_second: u64) -> Self {
+    pub(super) fn new(ticks_per_second: u64) -> Self {
         Self { ticks_per_second }
     }
 
+    /// Number of ticks in a second for this trace
     pub fn ticks_per_second(&self) -> u64 {
         self.ticks_per_second
     }

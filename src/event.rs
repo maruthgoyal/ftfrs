@@ -1,4 +1,3 @@
-use crate::header::CustomField;
 use crate::wordutils::pad_and_write_string;
 use crate::{FtfError, Result};
 use std::io::{Read, Write};
@@ -52,8 +51,16 @@ impl TryFrom<u8> for EventType {
     type Error = EventTypeParseError;
 }
 
+pub trait Event {
+    fn timestamp(&self) -> u64;
+    fn thread(&self) -> &ThreadRef;
+    fn category(&self) -> &StringRef;
+    fn name(&self) -> &StringRef;
+    fn arguments(&self) -> &[Argument];
+}
+
 #[derive(Debug, Clone, PartialEq)]
-pub struct Event {
+pub struct InnerEvent {
     timestamp: u64,
     thread: ThreadRef,
     category: StringRef,
@@ -61,8 +68,8 @@ pub struct Event {
     arguments: Vec<Argument>,
 }
 
-impl Event {
-    pub fn new(
+impl InnerEvent {
+    pub(crate) fn new(
         timestamp: u64,
         thread: ThreadRef,
         category: StringRef,
@@ -159,13 +166,15 @@ impl Event {
     }
 }
 
+/// Instant event
+/// Describes a particular moment in time
 #[derive(Debug, Clone, PartialEq)]
 pub struct Instant {
-    event: Event,
+    event: InnerEvent,
 }
 
 impl Instant {
-    pub fn new(
+    pub(crate) fn new(
         timestamp: u64,
         thread: ThreadRef,
         category: StringRef,
@@ -173,12 +182,8 @@ impl Instant {
         arguments: Vec<Argument>,
     ) -> Self {
         Self {
-            event: Event::new(timestamp, thread, category, name, arguments),
+            event: InnerEvent::new(timestamp, thread, category, name, arguments),
         }
-    }
-
-    pub fn event(&self) -> &Event {
-        &self.event
     }
 
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
@@ -186,14 +191,39 @@ impl Instant {
     }
 }
 
+impl Event for Instant {
+    fn timestamp(&self) -> u64 {
+        self.event.timestamp
+    }
+
+    fn thread(&self) -> &ThreadRef {
+        self.event.thread()
+    }
+
+    fn category(&self) -> &StringRef {
+        self.event.category()
+    }
+
+    fn name(&self) -> &StringRef {
+        self.event.name()
+    }
+
+    fn arguments(&self) -> &[Argument] {
+        self.event.arguments()
+    }
+}
+
+/// Counter
+/// Arguments represent sampled values in the timeseries
+/// represented by the counter
 #[derive(Debug, Clone, PartialEq)]
 pub struct Counter {
-    event: Event,
+    event: InnerEvent,
     counter_id: u64,
 }
 
 impl Counter {
-    pub fn new(
+    pub(crate) fn new(
         timestamp: u64,
         thread: ThreadRef,
         category: StringRef,
@@ -202,20 +232,17 @@ impl Counter {
         counter_id: u64,
     ) -> Self {
         Self {
-            event: Event::new(timestamp, thread, category, name, arguments),
+            event: InnerEvent::new(timestamp, thread, category, name, arguments),
             counter_id,
         }
     }
 
-    pub fn event(&self) -> &Event {
-        &self.event
-    }
-
+    /// ID of the counter
     pub fn counter_id(&self) -> u64 {
         self.counter_id
     }
 
-    fn parse<U: Read>(reader: &mut U, event: Event) -> Result<Self> {
+    fn parse<U: Read>(reader: &mut U, event: InnerEvent) -> Result<Self> {
         let counter_id = read_u64_word(reader)?;
         Ok(Self { event, counter_id })
     }
@@ -226,13 +253,37 @@ impl Counter {
     }
 }
 
+impl Event for Counter {
+    fn timestamp(&self) -> u64 {
+        self.event.timestamp
+    }
+
+    fn thread(&self) -> &ThreadRef {
+        self.event.thread()
+    }
+
+    fn category(&self) -> &StringRef {
+        self.event.category()
+    }
+
+    fn name(&self) -> &StringRef {
+        self.event.name()
+    }
+
+    fn arguments(&self) -> &[Argument] {
+        self.event.arguments()
+    }
+}
+
+/// DurationBegin
+/// Marks the start of an operation
 #[derive(Debug, Clone, PartialEq)]
 pub struct DurationBegin {
-    event: Event,
+    event: InnerEvent,
 }
 
 impl DurationBegin {
-    pub fn new(
+    pub(crate) fn new(
         timestamp: u64,
         thread: ThreadRef,
         category: StringRef,
@@ -240,12 +291,8 @@ impl DurationBegin {
         arguments: Vec<Argument>,
     ) -> Self {
         Self {
-            event: Event::new(timestamp, thread, category, name, arguments),
+            event: InnerEvent::new(timestamp, thread, category, name, arguments),
         }
-    }
-
-    pub fn event(&self) -> &Event {
-        &self.event
     }
 
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
@@ -254,13 +301,37 @@ impl DurationBegin {
     }
 }
 
+impl Event for DurationBegin {
+    fn timestamp(&self) -> u64 {
+        self.event.timestamp
+    }
+
+    fn thread(&self) -> &ThreadRef {
+        self.event.thread()
+    }
+
+    fn category(&self) -> &StringRef {
+        self.event.category()
+    }
+
+    fn name(&self) -> &StringRef {
+        self.event.name()
+    }
+
+    fn arguments(&self) -> &[Argument] {
+        self.event.arguments()
+    }
+}
+
+/// Duration End
+/// Marks the end of an operation
 #[derive(Debug, Clone, PartialEq)]
 pub struct DurationEnd {
-    event: Event,
+    event: InnerEvent,
 }
 
 impl DurationEnd {
-    pub fn new(
+    pub(crate) fn new(
         timestamp: u64,
         thread: ThreadRef,
         category: StringRef,
@@ -268,12 +339,8 @@ impl DurationEnd {
         arguments: Vec<Argument>,
     ) -> Self {
         Self {
-            event: Event::new(timestamp, thread, category, name, arguments),
+            event: InnerEvent::new(timestamp, thread, category, name, arguments),
         }
-    }
-
-    pub fn event(&self) -> &Event {
-        &self.event
     }
 
     fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
@@ -281,14 +348,38 @@ impl DurationEnd {
     }
 }
 
+impl Event for DurationEnd {
+    fn timestamp(&self) -> u64 {
+        self.event.timestamp
+    }
+
+    fn thread(&self) -> &ThreadRef {
+        self.event.thread()
+    }
+
+    fn category(&self) -> &StringRef {
+        self.event.category()
+    }
+
+    fn name(&self) -> &StringRef {
+        self.event.name()
+    }
+
+    fn arguments(&self) -> &[Argument] {
+        self.event.arguments()
+    }
+}
+
+/// Duration Complete
+/// Marks start and end of an operation
 #[derive(Debug, Clone, PartialEq)]
 pub struct DurationComplete {
-    event: Event,
+    event: InnerEvent,
     end_ts: u64,
 }
 
 impl DurationComplete {
-    pub fn new(
+    pub(crate) fn new(
         timestamp: u64,
         thread: ThreadRef,
         category: StringRef,
@@ -297,20 +388,17 @@ impl DurationComplete {
         end_ts: u64,
     ) -> Self {
         Self {
-            event: Event::new(timestamp, thread, category, name, arguments),
+            event: InnerEvent::new(timestamp, thread, category, name, arguments),
             end_ts,
         }
     }
 
-    pub fn event(&self) -> &Event {
-        &self.event
-    }
-
+    /// Timestamp of end of operation
     pub fn end_ts(&self) -> u64 {
         self.end_ts
     }
 
-    fn parse<U: Read>(reader: &mut U, event: Event) -> Result<Self> {
+    fn parse<U: Read>(reader: &mut U, event: InnerEvent) -> Result<Self> {
         let duration_ticks = read_u64_word(reader)?;
         Ok(Self {
             event,
@@ -324,23 +412,57 @@ impl DurationComplete {
     }
 }
 
+impl Event for DurationComplete {
+    fn timestamp(&self) -> u64 {
+        self.event.timestamp
+    }
+
+    fn thread(&self) -> &ThreadRef {
+        self.event.thread()
+    }
+
+    fn category(&self) -> &StringRef {
+        self.event.category()
+    }
+
+    fn name(&self) -> &StringRef {
+        self.event.name()
+    }
+
+    fn arguments(&self) -> &[Argument] {
+        self.event.arguments()
+    }
+}
+
+/// The various types of Events
 #[derive(Debug, Clone, PartialEq)]
 pub enum EventRecord {
+    /// Instant event
     Instant(Instant),
+    /// Counter event
     Counter(Counter),
+    /// Duration Begin event
     DurationBegin(DurationBegin),
+    /// Duration End event
     DurationEnd(DurationEnd),
+    /// Duration Complete event
     DurationComplete(DurationComplete),
+    /// Async Begin event
     AsyncBegin,
+    /// Async End event
     AsyncEnd,
+    /// Async Instant event
     AsyncInstant,
+    /// Flow Begin event
     FlowBegin,
+    /// Flow End event
     FlowEnd,
+    /// Flow Step event
     FlowStep,
 }
 
 impl EventRecord {
-    pub fn create_instant(
+    pub(crate) fn create_instant(
         timestamp: u64,
         thread: ThreadRef,
         category: StringRef,
@@ -350,7 +472,7 @@ impl EventRecord {
         Self::Instant(Instant::new(timestamp, thread, category, name, arguments))
     }
 
-    pub fn create_counter(
+    pub(crate) fn create_counter(
         timestamp: u64,
         thread: ThreadRef,
         category: StringRef,
@@ -363,7 +485,7 @@ impl EventRecord {
         ))
     }
 
-    pub fn create_duration_begin(
+    pub(crate) fn create_duration_begin(
         timestamp: u64,
         thread: ThreadRef,
         category: StringRef,
@@ -375,7 +497,7 @@ impl EventRecord {
         ))
     }
 
-    pub fn create_duration_end(
+    pub(crate) fn create_duration_end(
         timestamp: u64,
         thread: ThreadRef,
         category: StringRef,
@@ -387,7 +509,7 @@ impl EventRecord {
         ))
     }
 
-    pub fn create_duration_complete(
+    pub(crate) fn create_duration_complete(
         timestamp: u64,
         thread: ThreadRef,
         category: StringRef,
@@ -431,7 +553,10 @@ impl EventRecord {
         }
     }
 
-    fn parse_event<U: Read>(reader: &mut U, header: &RecordHeader) -> Result<(EventType, Event)> {
+    fn parse_event<U: Read>(
+        reader: &mut U,
+        header: &RecordHeader,
+    ) -> Result<(EventType, InnerEvent)> {
         let event_type = extract_bits!(header.value, 16, 19) as u8;
         let n_args = extract_bits!(header.value, 20, 23) as u8;
         let thread = extract_bits!(header.value, 24, 31) as u8;
@@ -481,7 +606,7 @@ impl EventRecord {
 
         Ok((
             event_type,
-            Event {
+            InnerEvent {
                 timestamp,
                 thread,
                 category,
@@ -974,7 +1099,7 @@ mod tests {
     #[test]
     fn test_instant_event_record_write() -> Result<()> {
         // Create an instant event with reference thread, category, and name
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 1000000,
             thread: ThreadRef::Ref(5),
             category: StringRef::Ref(10),
@@ -1030,7 +1155,7 @@ mod tests {
     #[test]
     fn test_counter_event_record_write() -> Result<()> {
         // Create a counter event
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 1000000,
             thread: ThreadRef::Ref(1),
             category: StringRef::Ref(2),
@@ -1072,7 +1197,7 @@ mod tests {
     #[test]
     fn test_duration_begin_event_record_write() -> Result<()> {
         // Create a duration begin event
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 2000000,
             thread: ThreadRef::Ref(7),
             category: StringRef::Ref(12),
@@ -1111,7 +1236,7 @@ mod tests {
     #[test]
     fn test_duration_end_event_record_write() -> Result<()> {
         // Create a duration end event
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 3000000,
             thread: ThreadRef::Ref(7),
             category: StringRef::Ref(12),
@@ -1150,7 +1275,7 @@ mod tests {
     #[test]
     fn test_duration_complete_event_record_write() -> Result<()> {
         // Create a duration complete event
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 4000000,
             thread: ThreadRef::Ref(8),
             category: StringRef::Ref(15),
@@ -1192,7 +1317,7 @@ mod tests {
     #[test]
     fn test_event_record_write_with_inline_thread() -> Result<()> {
         // Create an event with inline thread
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 1000000,
             thread: ThreadRef::Inline {
                 process_koid: 12345,
@@ -1241,7 +1366,7 @@ mod tests {
     #[test]
     fn test_event_record_write_with_inline_category() -> Result<()> {
         // Create an event with inline category
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 1000000,
             thread: ThreadRef::Ref(1),
             category: StringRef::Inline("cat".to_string()),
@@ -1283,7 +1408,7 @@ mod tests {
     #[test]
     fn test_event_record_write_with_inline_name() -> Result<()> {
         // Create an event with inline name
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 1000000,
             thread: ThreadRef::Ref(1),
             category: StringRef::Ref(2),
@@ -1325,7 +1450,7 @@ mod tests {
     #[test]
     fn test_event_record_write_with_multiple_inline_fields() -> Result<()> {
         // Create an event with inline thread, category, and name
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 5000000,
             thread: ThreadRef::Inline {
                 process_koid: 98765,
@@ -1403,7 +1528,7 @@ mod tests {
     #[test]
     fn test_instant_event_record_roundtrip() -> Result<()> {
         // Create an instant event with references
-        let original_event = Event {
+        let original_event = InnerEvent {
             timestamp: 1000000,
             thread: ThreadRef::Ref(5),
             category: StringRef::Ref(10),
@@ -1441,7 +1566,7 @@ mod tests {
     #[test]
     fn test_counter_event_record_roundtrip() -> Result<()> {
         // Create a counter event
-        let original_event = Event {
+        let original_event = InnerEvent {
             timestamp: 1000000,
             thread: ThreadRef::Ref(1),
             category: StringRef::Ref(2),
@@ -1481,7 +1606,7 @@ mod tests {
     #[test]
     fn test_duration_complete_event_record_roundtrip() -> Result<()> {
         // Create a duration complete event
-        let original_event = Event {
+        let original_event = InnerEvent {
             timestamp: 4000000,
             thread: ThreadRef::Ref(8),
             category: StringRef::Ref(15),
@@ -1521,7 +1646,7 @@ mod tests {
     #[test]
     fn test_inline_fields_roundtrip() -> Result<()> {
         // Create an event with all inline fields
-        let original_event = Event {
+        let original_event = InnerEvent {
             timestamp: 5000000,
             thread: ThreadRef::Inline {
                 process_koid: 98765,
@@ -1646,7 +1771,7 @@ mod tests {
     #[test]
     fn test_event_with_multiple_arguments() -> Result<()> {
         // Create an event with multiple arguments of different types
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 1000000,
             thread: ThreadRef::Ref(5),
             category: StringRef::Ref(10),
@@ -1735,7 +1860,7 @@ mod tests {
     #[test]
     fn test_event_with_inline_argument_fields() -> Result<()> {
         // Create an event with arguments that have inline fields
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 1000000,
             thread: ThreadRef::Ref(5),
             category: StringRef::Ref(10),
@@ -1811,7 +1936,7 @@ mod tests {
             Argument::UInt64(StringRef::Ref(0x0051), 200),
         ];
 
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 2000000,
             thread: ThreadRef::Ref(6),
             category: StringRef::Ref(11),
@@ -1874,7 +1999,7 @@ mod tests {
             ),
         ];
 
-        let begin_event = Event {
+        let begin_event = InnerEvent {
             timestamp: 3000000,
             thread: ThreadRef::Ref(7),
             category: StringRef::Ref(12),
@@ -1933,7 +2058,7 @@ mod tests {
             Argument::Str(StringRef::Ref(0x0063), StringRef::Inline("end".to_string())),
         ];
 
-        let end_event = Event {
+        let end_event = InnerEvent {
             timestamp: 4000000,
             thread: ThreadRef::Ref(7),
             category: StringRef::Ref(12),
@@ -1998,7 +2123,7 @@ mod tests {
             Argument::KernelObjectId(StringRef::Ref(0x0072), 0x12345678),
         ];
 
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 5000000,
             thread: ThreadRef::Ref(8),
             category: StringRef::Ref(13),
@@ -2080,7 +2205,7 @@ mod tests {
             Argument::Boolean(StringRef::Ref(0x008A), true),
         ];
 
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 7000000,
             thread: ThreadRef::Ref(9),
             category: StringRef::Ref(14),
@@ -2229,7 +2354,7 @@ mod tests {
             ),
         ];
 
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 8000000,
             thread: ThreadRef::Inline {
                 process_koid: 111111,
@@ -2372,7 +2497,7 @@ mod tests {
         // - Arguments: 1 + 2 + 2 + 3 + 2 + 3 = 13
         // Total: 1 + 1 + 13 = 15 words
 
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 9000000,
             thread: ThreadRef::Ref(10),
             category: StringRef::Ref(20),
@@ -2433,7 +2558,7 @@ mod tests {
             ),
         ];
 
-        let event = Event {
+        let event = InnerEvent {
             timestamp: 10000000,
             thread: ThreadRef::Ref(11),
             category: StringRef::Ref(21),
