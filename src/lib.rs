@@ -1,6 +1,63 @@
 #![warn(missing_docs)]
 //! ftfrs: Provides low-level APIs to read and write Fuchsia Trace Format
 //! traces.
+//!
+//! ```rust
+//! use ftfrs::{
+//!     Archive, Record, StringRef, ThreadRef, Result
+//! };
+//! use std::fs::File;
+//! use std::io::BufWriter;
+//! fn main() -> Result<()> {
+//!     let mut archive = Archive {
+//!         records: Vec::new(),
+//!     };
+//!     archive.records.push(Record::create_magic_number());
+//!
+//!     archive.records.push(Record::create_provider_info(
+//!         1, // provider ID
+//!         "my_provider".to_string(),
+//!     ));
+//!     archive.records.push(Record::create_string(
+//!         1, // string index
+//!         "example".to_string(),
+//!     ));
+//!     archive.records.push(Record::create_thread(
+//!         1,         // thread index
+//!         0x1234,    // process KOID
+//!         0x5678,    // thread KOID
+//!     ));
+//!     archive.records.push(Record::create_instant_event(
+//!         100_000,
+//!         ThreadRef::Ref(1),
+//!         StringRef::Inline("category".to_string()),
+//!         StringRef::Inline("started".to_string()),
+//!         Vec::new(),
+//!     ));
+//!     archive.records.push(Record::create_duration_begin_event(
+//!         200_000, // timestamp (200 microseconds)
+//!         ThreadRef::Ref(1),
+//!         StringRef::Inline("category".to_string()),
+//!         StringRef::Inline("process".to_string()),
+//!         vec![
+//!             Argument::Int32(StringRef::Inline("status_code".to_string()), 200),
+//!         ]
+//!     ));
+//!     archive.records.push(Record::create_duration_end_event(
+//!         300_000, // timestamp (300 microseconds)
+//!         ThreadRef::Ref(1),
+//!         StringRef::Inline("category".to_string()),
+//!         StringRef::Inline("process".to_string()),
+//!         Vec::new(),
+//!     ));
+//!     let file = File::create("new_trace.ftf")?;
+//!     let writer = BufWriter::new(file);
+//!     archive.write(writer)?;
+//!     println!("Trace file successfully written!");
+//!     Ok(())
+//! }
+//! ```
+//!
 
 mod argument;
 mod bitutils;
