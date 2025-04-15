@@ -1,0 +1,30 @@
+
+Writing to in memory growable buffer:
+Bare write: 7ns/span
+With creation: 8ns/span
+With random numbers in creation: 8ns/span
+With hash lookup with pre-interned strings with fast hash: 14ns/span
+With hash lookup + insert for interning: ~120ns/span (high variance: 40ns-190ns/span)
+With 2 hash lookup + insert for interning: ~150ns/span (high variance: 80ns-190ns/span)
+With hash lookup + pre-warmed insert: 14ns/span 
+With 2 hash lookup + pre-warmed insert: 18ns/span 
+With 2 hash lookup + pre-warmed insert + RwLock on the string map: 20ns/span With 2 hash lookup + always intern + RwLock on the string map: 60-190ns/span 
+With 2 hash lookup + pre-warmed insert + RwLock on the string map + atomic for str index: 20ns/span 
+With 2 hash lookup + always intern + RwLock on the string map + atomic for str index: 50ns/span 
+
+With 2 hash lookup + always intern + RwLock on the string map + atomic for str index + write string records: 80ns/span 
+With 2 hash lookup + pre-warmed intern + RwLock on the string map + atomic for str index + write string records: 19-20ns/span 
+
+Python: (gc disabled)
+Seems like min 110ns/span overhead?
+perf_counter_ns() takes like 50ns/call
+threading.get_ident() takes 30ns/call
+
+RwLock hash + 2 hash lookup + pre-interned strings + write str records: 82 ns/span
+RwLock hash + 2 hash lookup + pre-warmed interned strings + write str records: 130 ns/span
+RwLock hash + 2 hash lookup + pre-warmed interned strings + write str records + compute timestamp: 190 ns/span
+RwLock hash + 2 hash lookup + always intern + write str records: 190 ns/span
+RwLock hash + 2 hash lookup + pre-warmed interned strings + write str records + compute timestamp + threading.get_ident: 215 ns/span
+
+JSON add to Python list:  233ns/span
+
