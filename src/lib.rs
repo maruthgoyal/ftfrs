@@ -1,3 +1,7 @@
+#![warn(missing_docs)]
+//! ftfrs: Provides low-level APIs to read and write Fuchsia Trace Format
+//! traces.
+
 mod argument;
 mod bitutils;
 mod event;
@@ -28,41 +32,64 @@ use std::io::{ErrorKind, Read, Write};
 use std::string::FromUtf8Error;
 use thiserror::Error;
 
+/// Errors returnable by top-level public-API functions
 #[derive(Error, Debug)]
 pub enum FtfError {
+    /// Error during I/O
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 
+    /// UTF-8 conversion error
     #[error("UTF-8 conversion error: {0}")]
     Utf8(#[from] FromUtf8Error),
 
+    /// Invalid record type. For valid record types
+    /// see http://fuchsia.dev/fuchsia-src/reference/tracing/trace-format
     #[error("Invalid record type: {0}")]
     InvalidRecordType(#[from] RecordTypeParseError),
 
+    /// Invalid event type. For valid event types
+    /// see http://fuchsia.dev/fuchsia-src/reference/tracing/trace-format
     #[error("Invalid event type: {0}")]
     InvalidEventType(#[from] EventTypeParseError),
 
+    /// Invalid metadata record type. For valid metadata record types
+    /// see http://fuchsia.dev/fuchsia-src/reference/tracing/trace-format
     #[error("Invalid metadata type: {0}")]
     InvalidMetadataType(#[from] MetadataTypeParseError),
 
+    /// Invalid argument type. For valid metadata argument types
+    /// see http://fuchsia.dev/fuchsia-src/reference/tracing/trace-format
     #[error("Invalid argument type: {0}")]
     InvalidArgumentType(#[from] ArgumentTypeParseError),
 
+    /// Currently unsupported record type
     #[error("Unsupported record type: {0:?}")]
     UnsupportedRecordType(RecordType),
 
+    /// Unimplemented feature
     #[error("Unimplemented feature: {0}")]
     Unimplemented(String),
 
+    /// Parse error
     #[error("Parse error: {0}")]
     ParseError(String),
 }
 
+/// Specialized Result type for FtfError
 pub type Result<T> = std::result::Result<T, FtfError>;
 
+/// Represents a String as either an inline value
+/// which is written with the record, or a reference
+/// to a previously interned string (using a string record)
+/// as the String record's index
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StringRef {
+    /// Inline string
     Inline(String),
+    /// Reference to an interned string
+    /// Value is index specified in the String
+    /// record on creation
     Ref(u16),
 }
 
@@ -86,9 +113,20 @@ impl StringRef {
     }
 }
 
+/// Represents a Thread as either an inline value
+/// which is written with the record, or a reference
+/// to a previously interned thread (using a Thread record)
+/// as the Thread record's index
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ThreadRef {
-    Inline { process_koid: u64, thread_koid: u64 },
+    /// Inline thread with specified process ID and thread ID
+    Inline {
+        /// process ID
+        process_koid: u64,
+        /// thread ID
+        thread_koid: u64,
+    },
+    /// Reference to the index specified in a prior Thread record
     Ref(u8),
 }
 
@@ -101,51 +139,59 @@ impl ThreadRef {
     }
 }
 
+/// Represents a single Fuchsia Trace Format record
+/// https://fuchsia.dev/fuchsia-src/reference/tracing/trace-format#record_types
 #[derive(Debug, Clone, PartialEq)]
 pub enum Record {
+    /// specifies providers, and start of trace
     Metadata(MetadataRecord),
+    /// specifies number of ticks per second
     Initialization(InitializationRecord),
+    /// Interns a string into the provider's string table
+    /// At most 32,768 strings
     String(StringRecord),
+    /// Interns a thread into the provider's thread table
+    /// At most 256 threads
     Thread(ThreadRecord),
+    /// Most common type of record. Used to instantaneous
+    /// events, counters, begin of a span, end of a span
+    /// a whole span, etc. Can provide arguments to each
+    /// event to provide additional context.
     Event(EventRecord),
+    /// Provides large binary BLOB data to be embedded within a trace. It uses the large record header.
+    /// The large BLOB record supports a number of different formats. These formats can be
+    ///  used for varying the types of BLOB data and metadata included in the record.
     Blob,
+    /// Describes a userspace object, assigns it a label, and optionally associates key/value data with it as arguments.
+    /// Information about the object is added to a per-process userspace object table.
     Userspace,
+    /// Describes a kernel object, assigns it a label, and optionally associates key/value data with it as arguments.
+    /// Information about the object is added to a global kernel object table.
     Kernel,
+    /// Describes a scheduling event such as when a thread was woken up, or a context switch from one thread to another.
     Scheduling,
+    /// Describes a message written to the log at a particular moment in time.
     Log,
+    /// Provides large binary BLOB data to be embedded within a trace. It uses the large record header.
+    ///The large BLOB record supports a number of different formats. These formats can be used for
+    /// varying the types of BLOB data and metadata included in the record.
     LargeBlob,
 }
 
+/// A sequence of records
+/// Must begin with a Magic record
 pub struct Archive {
+    /// the records in the archive
     pub records: Vec<Record>,
 }
 
 impl Archive {
     /// Read a trace from a file, or other readable object.
     /// Reads the object till EOF.
-    /// ```
-    /// use std::fs::File;
-    /// use std::io::BufReader;
-    /// fn main() -> Result<()> {
-    /// // Open the trace file
-    /// let file = File::open("trace.ftf")?;
-    /// let reader = BufReader::new(file);
-
-    /// // Parse the trace archive
-    /// let archive = Archive::read(reader)?;
-
-    /// // Process the records in the archive
-    /// for (i, record) in archive.records.iter().enumerate() {
-    ///  println!("Record {}: {:?}", i, record);
-    /// }
-    /// Ok(())
-    /// }
-    ///
-    /// ```
     pub fn read<R: Read>(mut reader: R) -> Result<Self> {
         let mut res = Vec::new();
         loop {
-            match Record::from_bytes(&mut reader) {
+            match Record::read(&mut reader) {
                 Ok(r) => res.push(r),
                 Err(FtfError::Io(e)) => match e.kind() {
                     ErrorKind::UnexpectedEof => break,
@@ -158,6 +204,7 @@ impl Archive {
         Ok(Archive { records: res })
     }
 
+    /// Write an archive to a file, or other writeable object.
     pub fn write<W: Write>(&self, mut writer: W) -> Result<()> {
         for record in &self.records {
             record.write(&mut writer)?;
@@ -167,18 +214,37 @@ impl Archive {
 }
 
 impl Record {
+    /// Create Initialize record
+    /// * ticks_per_second: number of ticks in a second (defaults to 1 tick : 1 ns if omitted)
     pub fn create_initialization(ticks_per_second: u64) -> Self {
         Self::Initialization(InitializationRecord::new(ticks_per_second))
     }
 
+    /// Create String record. Interns the provided string into the Provider's
+    /// string table with the provided index. At most 32,768 strings in the table.
+    /// Can refer to the interned strings using the index in later records.
+    /// * index: index of the interned string in the table
+    /// * value: the string to intern
     pub fn create_string<S: Into<String>>(index: u16, value: S) -> Self {
         Self::String(StringRecord::new(index, value.into()))
     }
 
+    /// Create Thread record. Interns the provided thread into the Provider's
+    /// thread table with the provided index. At most 256 threads in the table.
+    /// Can refer to the interned threads using the index in later records.
+    /// * index: index of the interned thread in the table
+    /// * process_koid: ID of the process
+    /// * thread_koid: ID of the thread
     pub fn create_thread(index: u8, process_koid: u64, thread_koid: u64) -> Self {
         Self::Thread(ThreadRecord::new(index, process_koid, thread_koid))
     }
 
+    /// Create ProviderInfo Metadata record.
+    /// Registers a trace provider (eg: a particular sub-system with many threads and/or processes)
+    /// with the given name and ID. Future ProviderSection and ProviderEvent records can refer to this
+    /// index.
+    /// * provider_id: integer ID for this provider
+    /// * provider_name: name of this provider
     pub fn create_provider_info<S: Into<String>>(provider_id: u32, provider_name: S) -> Self {
         Self::Metadata(MetadataRecord::ProviderInfo(ProviderInfo::new(
             provider_id,
@@ -186,6 +252,12 @@ impl Record {
         )))
     }
 
+    /// Create ProviderEvent Metadata record.
+    /// This metadata provides running notification of events that the provider wants to report.
+    /// This record may appear anywhere in the output, and does not delimit what came before it or what comes after it.
+    /// * provider_id: ID of the assosciated provider
+    /// * event_id: ID for the type of event. The following events are defined:
+    /// - 0: a buffer filled up, records were likely dropped
     pub fn create_provider_event(provider_id: u32, event_id: u8) -> Self {
         Self::Metadata(MetadataRecord::ProviderEvent(ProviderEvent::new(
             provider_id,
@@ -193,12 +265,22 @@ impl Record {
         )))
     }
 
+    /// Create ProviderSection Metadata record.
+    /// This metadata delimits sections of the trace that have been obtained from different providers.
+    /// All data that follows until the next provider section metadata or provider info metadata is encountered
+    /// is assumed to have been collected from the same provider. When reading a trace consisting of an accumulation
+    /// of traces from different trace providers, the reader must maintain state separately for each
+    /// provider's traces (such as the initialization data, string table, thread table, userspace object table
+    /// and kernel object table) and switch contexts whenever it encounters a new provider section metadata record.
+    /// * provider_id: ID of the Provider registered with a ProviderInfo record
     pub fn create_provider_section(provider_id: u32) -> Self {
         Self::Metadata(MetadataRecord::ProviderSection(ProviderSection::new(
             provider_id,
         )))
     }
 
+    /// Create TraceInfo record
+    /// Provides information about the trace as a whole
     pub fn create_trace_info(trace_info_type: u8, data: [u8; 5]) -> Self {
         Self::Metadata(MetadataRecord::TraceInfo(TraceInfo::new(
             trace_info_type,
@@ -206,10 +288,20 @@ impl Record {
         )))
     }
 
+    /// Create a Magic number TraceInfo Metadata record
+    /// Demarcates the start of a trace. Every trace must begin
+    /// with a magic number record
     pub fn create_magic_number() -> Self {
         Self::Metadata(MetadataRecord::MagicNumber)
     }
 
+    /// Create an Instant Event record.
+    /// Describes a particular point in time.
+    /// * timestamp: timestamp of event (as ticks)
+    /// * thread: thread for this event
+    /// * category: a category (eg: "network" or "database") for this event
+    /// * name: name of this event
+    /// * arguments: additional metadata about the event
     pub fn create_instant_event(
         timestamp: u64,
         thread: ThreadRef,
@@ -222,6 +314,14 @@ impl Record {
         ))
     }
 
+    /// Create a Counter Event record.
+    /// Describes a particular point in time.
+    /// * timestamp: timestamp of event (as ticks)
+    /// * thread: thread for this event
+    /// * category: a category (eg: "network" or "database") for this event
+    /// * name: name of this event
+    /// * arguments: additional metadata about the event
+    /// * counter_id: unique ID for this counter, future records for the same counter should use the same ID
     pub fn create_counter_event(
         timestamp: u64,
         thread: ThreadRef,
@@ -235,6 +335,14 @@ impl Record {
         ))
     }
 
+    /// Create a DurationBegin event record
+    /// Marks the beginning of an operation on a particular thread. Must be matched by a duration end event.
+    /// May be nested.
+    /// * timestamp: timestamp of event (as ticks)
+    /// * thread: thread for this event
+    /// * category: a category (eg: "network" or "database") for this event
+    /// * name: name of this event
+    /// * arguments: additional metadata about the event
     pub fn create_duration_begin_event(
         timestamp: u64,
         thread: ThreadRef,
@@ -247,6 +355,13 @@ impl Record {
         ))
     }
 
+    /// Create a DurationEnd event record
+    /// Marks the end of an operation on a particular thread.
+    /// * timestamp: timestamp of event (as ticks)
+    /// * thread: thread for this event
+    /// * category: a category (eg: "network" or "database") for this event
+    /// * name: name of this event
+    /// * arguments: additional metadata about the event
     pub fn create_duration_end_event(
         timestamp: u64,
         thread: ThreadRef,
@@ -259,6 +374,14 @@ impl Record {
         ))
     }
 
+    /// Creates a DurationComplete Event record
+    /// Marks the beginning and end of an operation on a particular thread.
+    /// * timestamp: timestamp of event (as ticks)
+    /// * thread: thread for this event
+    /// * category: a category (eg: "network" or "database") for this event
+    /// * name: name of this event
+    /// * arguments: additional metadata about the event
+    /// * end_ts: timestamps for end of the operation
     pub fn create_duration_complete_event(
         timestamp: u64,
         thread: ThreadRef,
@@ -272,7 +395,8 @@ impl Record {
         ))
     }
 
-    pub fn from_bytes<U: Read>(reader: &mut U) -> Result<Record> {
+    /// Read a single record from a file, or other readable object
+    pub fn read<U: Read>(reader: &mut U) -> Result<Record> {
         let header = RecordHeader {
             value: read_u64_word(reader)?,
         };
@@ -290,6 +414,7 @@ impl Record {
         }
     }
 
+    /// Write a single record to a file, or other writeable object
     pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         match self {
             Self::Metadata(r) => Ok(r.write(writer)?),

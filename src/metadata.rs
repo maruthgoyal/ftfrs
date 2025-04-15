@@ -611,7 +611,7 @@ mod tests {
         MetadataRecord::MagicNumber.write(&mut buffer)?;
 
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
         assert!(matches!(
             record,
             Record::Metadata(MetadataRecord::MagicNumber)
@@ -627,7 +627,7 @@ mod tests {
         MetadataRecord::ProviderInfo(provider_info.clone()).write(&mut buffer)?;
 
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         if let Record::Metadata(MetadataRecord::ProviderInfo(parsed_info)) = record {
             assert_eq!(parsed_info.provider_id, provider_info.provider_id);
@@ -643,7 +643,7 @@ mod tests {
         MetadataRecord::ProviderSection(provider_section).write(&mut buffer)?;
 
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         if let Record::Metadata(MetadataRecord::ProviderSection(parsed_section)) = record {
             assert_eq!(parsed_section.provider_id, provider_section.provider_id);
@@ -661,7 +661,7 @@ mod tests {
         MetadataRecord::ProviderEvent(provider_event).write(&mut buffer)?;
 
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         if let Record::Metadata(MetadataRecord::ProviderEvent(parsed_event)) = record {
             assert_eq!(parsed_event.provider_id, provider_event.provider_id);
@@ -680,7 +680,7 @@ mod tests {
         MetadataRecord::TraceInfo(trace_info).write(&mut buffer)?;
 
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         if let Record::Metadata(MetadataRecord::TraceInfo(parsed_info)) = record {
             assert_eq!(parsed_info.trace_info_type, trace_info.trace_info_type);

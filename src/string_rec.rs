@@ -187,7 +187,7 @@ mod tests {
 
         // Read it back
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         // Verify it matches the original
         match record {

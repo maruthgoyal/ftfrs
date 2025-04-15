@@ -1421,7 +1421,7 @@ mod tests {
 
         // Read it back
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         // Verify it matches the original
         match record {
@@ -1460,7 +1460,7 @@ mod tests {
 
         // Read it back
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         // Verify it matches the original
         match record {
@@ -1500,7 +1500,7 @@ mod tests {
 
         // Read it back
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         // Verify it matches the original
         match record {
@@ -1542,7 +1542,7 @@ mod tests {
 
         // Read it back
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         // Verify it matches the original
         match record {
@@ -1668,7 +1668,7 @@ mod tests {
 
         // Read it back
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         // Verify it matches the original
         match record {
@@ -1757,7 +1757,7 @@ mod tests {
 
         // Read it back
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         // Verify it matches the original
         match record {
@@ -1830,7 +1830,7 @@ mod tests {
 
         // Read it back
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         // Verify it matches the original
         match record {
@@ -1890,7 +1890,7 @@ mod tests {
 
         // Read it back
         let mut begin_cursor = Cursor::new(&begin_buffer);
-        let begin_parsed = Record::from_bytes(&mut begin_cursor)?;
+        let begin_parsed = Record::read(&mut begin_cursor)?;
 
         // Verify begin event matches the original
         match begin_parsed {
@@ -1949,7 +1949,7 @@ mod tests {
 
         // Read it back
         let mut end_cursor = Cursor::new(&end_buffer);
-        let end_parsed = Record::from_bytes(&mut end_cursor)?;
+        let end_parsed = Record::read(&mut end_cursor)?;
 
         // Verify end event matches the original
         match end_parsed {
@@ -2017,7 +2017,7 @@ mod tests {
 
         // Read it back
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         // Verify it matches the original
         match record {
@@ -2096,7 +2096,7 @@ mod tests {
 
         // Read it back
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         // Verify it matches the original
         match record {
@@ -2248,7 +2248,7 @@ mod tests {
 
         // Read it back
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         // Verify it matches the original
         match record {
@@ -2449,7 +2449,7 @@ mod tests {
 
         // Read it back
         let mut cursor = Cursor::new(&buffer);
-        let record = Record::from_bytes(&mut cursor)?;
+        let record = Record::read(&mut cursor)?;
 
         // Verify strings were preserved correctly
         match record {
