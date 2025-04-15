@@ -17,7 +17,9 @@ pub use crate::argument::Argument;
 use argument::ArgumentTypeParseError;
 use bitutils::{extract_bits, mask_length};
 use event::EventTypeParseError;
-pub use event::{Counter, DurationBegin, DurationComplete, DurationEnd, EventRecord, Instant};
+pub use event::{
+    Counter, DurationBegin, DurationComplete, DurationEnd, Event, EventRecord, Instant,
+};
 use header::RecordTypeParseError;
 pub use header::{RecordHeader, RecordType};
 pub use initialization::InitializationRecord;

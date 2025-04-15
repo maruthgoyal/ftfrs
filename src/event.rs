@@ -51,11 +51,17 @@ impl TryFrom<u8> for EventType {
     type Error = EventTypeParseError;
 }
 
+/// Records which are Events
 pub trait Event {
+    /// The timestamp the event occured at
     fn timestamp(&self) -> u64;
+    /// The thread the event occurred on
     fn thread(&self) -> &ThreadRef;
+    /// The category of the event
     fn category(&self) -> &StringRef;
+    /// The name of the event
     fn name(&self) -> &StringRef;
+    /// Arguments to the event
     fn arguments(&self) -> &[Argument];
 }
 
@@ -83,10 +89,6 @@ impl InnerEvent {
             name,
             arguments,
         }
-    }
-
-    pub fn timestamp(&self) -> u64 {
-        self.timestamp
     }
 
     pub fn thread(&self) -> &ThreadRef {

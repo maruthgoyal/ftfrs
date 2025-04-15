@@ -236,10 +236,15 @@ impl TryFrom<u8> for MetadataType {
 /// trace
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MetadataRecord {
+    /// Register a Provider
     ProviderInfo(ProviderInfo),
+    /// Demarcates records following this to be from the assosciated Provider
     ProviderSection(ProviderSection),
+    /// Event related to a Provider (eg: loss of records)
     ProviderEvent(ProviderEvent),
+    /// Information about the whole trace
     TraceInfo(TraceInfo),
+    /// Demarcates start of a new trace
     MagicNumber,
 }
 
