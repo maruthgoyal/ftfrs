@@ -6,18 +6,15 @@ description = "Read and write Fuchsia Trace Format (FTF) traces with Rust"
 repository = "https://github.com/maruthgoyal/ftfrs"
 license = "MIT"
 
-exclude = [
-	".github/*",
-]
+exclude = [".github/*"]
 
 [dependencies]
 anyhow = "1.0.97"
-log = "0.4.27"
-rustc-hash = "2.1.1"
 thiserror = "2.0.12"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
+rustc-hash = "2.1.1"
 
 [[example]]
 name = "trace_tool"

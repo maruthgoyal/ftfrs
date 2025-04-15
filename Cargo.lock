@@ -184,7 +184,6 @@ version = "0.1.1"
 dependencies = [
  "anyhow",
  "criterion",
- "log",
  "rustc-hash",
  "thiserror",
 ]
